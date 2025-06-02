@@ -44,7 +44,6 @@ if RENDER_EXTERNAL_HOSTNAME:
 INSTALLED_APPS = [
     'employee.apps.EmployeeConfig',
     'accounts.apps.AccountsConfig',
-    'djangocms_admin_style',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
