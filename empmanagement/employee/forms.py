@@ -1,4 +1,5 @@
-from tkinter import Widget
+# from tkinter import Widget
+from django.forms import Widget
 from django import forms
 from .models import workAssignments,SalaryDisbursement
 from .models import BusinessExpenditure, RequestType
