@@ -1,7 +1,7 @@
 from pyexpat import model
 from django.db import models
 from pickle import TRUE
-from turtle import title
+# from turtle import title
 from datetime import datetime
 from django.contrib.auth.models import User  # Assuming Employee is related to Django's User model
 # from .models import Employee  
@@ -54,7 +54,7 @@ class Employee(models.Model):
     def __str__(self):  
         return "%s %s %s " % (self.eID, self.firstName, self.lastName)
     
-from django.db import models
+
 from datetime import timedelta
 
 class Attendance(models.Model):
@@ -84,7 +84,6 @@ class Attendance(models.Model):
         return f"{self.eId} - {self.login_time.date() if self.login_time else self.date}"
 
 
-from django.db import models
 from django.contrib.auth.models import User
 from datetime import timedelta
 
@@ -116,6 +115,8 @@ class Notice(models.Model):
     employee = models.ForeignKey('Employee', on_delete=models.CASCADE,default=1)
     Id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=250)
+    # title = models.CharField(max_length=100)
+
     description = models.TextField()
     publishDate = models.DateTimeField()
     is_global = models.BooleanField(default=False)
@@ -161,7 +162,7 @@ class SalaryDisbursement(models.Model):
     def __str__(self):
         return f"{self.employee.firstName} - {self.month} {self.year} ({self.status})"
 
-from django.db import models
+
 class BusinessExpenditure(models.Model):
     employee = models.ForeignKey('Employee', on_delete=models.CASCADE)
     expenditure_name = models.CharField(max_length=200)
@@ -304,7 +305,7 @@ class WorkAssignment(models.Model):
     def __str__(self):
         return self.task_title
     
-from django.db import models
+
 from django.contrib.auth.models import User
 
 class Task(models.Model):
