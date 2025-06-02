@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 
 from pathlib import Path
 import os
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -90,16 +91,28 @@ WSGI_APPLICATION = 'empmanagement.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'empdb',
+#         'USER': 'postgres',
+#         'PASSWORD': 'shakktii@123',
+#         'HOST': 'localhost',
+#         'PORT': '9820', 
+#     }
+# }
+
+
+
+# import dj_database_url
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'empdb',
-        'USER': 'postgres',
-        'PASSWORD': 'shakktii@123',
-        'HOST': 'localhost',
-        'PORT': '9820', 
-    }
+    'default': dj_database_url.config(
+        default=os.environ.get("DATABASE_URL"),
+        conn_max_age=600,  # Keeps connection alive, improves performance
+    )
 }
+
 
 
 # Password validation
