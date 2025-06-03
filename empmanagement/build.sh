@@ -17,5 +17,14 @@ if [ -d "empmanagement/static" ]; then
     cp -r empmanagement/static/* static/
 fi
 
+# Install whitenoise
+pip install whitenoise
+
+# Set debug to false for collectstatic
+sed -i "s/DEBUG = True/DEBUG = False/g" empmanagement/settings.py
+
 # Collect static files
-python manage.py collectstatic --no-input --clear
+python manage.py collectstatic --noinput --clear
+
+# Set debug back to true
+sed -i "s/DEBUG = False/DEBUG = True/g" empmanagement/settings.py
