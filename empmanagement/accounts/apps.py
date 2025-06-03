@@ -1,6 +1,6 @@
 from django.apps import AppConfig
-from django.contrib.auth.models import User
-import os
+# from django.contrib.auth.models import User
+# import os
 
 
 # class AccountsConfig(AppConfig):
