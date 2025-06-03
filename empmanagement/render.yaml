@@ -59,12 +59,12 @@ services:
       bash -c "
         echo 'Waiting for database to be ready...';
         until python manage.py migrate --noinput; do
-          echo 'Migration failed. Retrying in 5 seconds...';
+          echo 'Waiting for DB...';
           sleep 5;
         done;
         echo 'Collecting static files...';
         python manage.py collectstatic --noinput;
-        echo 'Starting Gunicorn...';
+        echo 'Starting server...';
         gunicorn empmanagement.wsgi:application --bind 0.0.0.0:$PORT
       "
     envVars:
