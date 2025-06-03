@@ -106,12 +106,18 @@ WSGI_APPLICATION = 'empmanagement.wsgi.application'
 
 # import dj_database_url
 
+# DATABASES = {
+#     'default': dj_database_url.config(
+#         default=os.environ.get("DATABASE_URL"),
+#         conn_max_age=600,  # Keeps connection alive, improves performance
+#     )
+# }
+import dj_database_url
+
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get("DATABASE_URL"),
-        conn_max_age=600,  # Keeps connection alive, improves performance
-    )
+    'default': dj_database_url.config(default=os.environ.get('DATABASE_URL'))
 }
+
 
 
 
