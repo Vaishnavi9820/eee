@@ -24,13 +24,47 @@
 #     plan: free
 
 
+# services:
+#   - type: web
+#     name: employee-management
+#     env: python
+#     buildCommand: pip install -r requirements.txt
+#     startCommand: gunicorn empmanagement.wsgi
+#     postDeployCommand: python manage.py migrate
+#     envVars:
+#       - key: PYTHON_VERSION
+#         value: 3.10.0
+#       - key: DEBUG
+#         value: "False"
+#       - key: DISABLE_COLLECTSTATIC
+#         value: "0"
+#       - key: ALLOWED_HOSTS
+#         value: "*"
+#       - key: SECRET_KEY
+#         generateValue: true
+#       - key: WEB_CONCURRENCY
+#         value: "4"
+#       - key: DATABASE_URL
+#         fromDatabase:
+#           name: employee-management-db
+#           property: connectionString
+#     plan: free
+
 services:
   - type: web
     name: employee-management
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn empmanagement.wsgi
-    postDeployCommand: python manage.py migrate
+    startCommand: |
+      bash -c "
+        echo 'Waiting for the database to be ready...';
+        until python manage.py migrate; do
+          echo 'Migration failed, retrying in 5 seconds...';
+          sleep 5;
+        done;
+        echo 'Migrations applied successfully.';
+        gunicorn empmanagement.wsgi:application
+      "
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.0
