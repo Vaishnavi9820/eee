@@ -57,13 +57,15 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: |
       bash -c "
-        echo 'Waiting for the database to be ready...';
-        until python manage.py migrate; do
-          echo 'Migration failed, retrying in 5 seconds...';
+        echo 'Waiting for database to be ready...';
+        until python manage.py migrate --noinput; do
+          echo 'Migration failed. Retrying in 5 seconds...';
           sleep 5;
         done;
-        echo 'Migrations applied successfully.';
-        gunicorn empmanagement.wsgi:application
+        echo 'Collecting static files...';
+        python manage.py collectstatic --noinput;
+        echo 'Starting Gunicorn...';
+        gunicorn empmanagement.wsgi:application --bind 0.0.0.0:$PORT
       "
     envVars:
       - key: PYTHON_VERSION
