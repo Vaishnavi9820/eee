@@ -164,6 +164,8 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # This ensures hashed filenames and manifest creation (used in production)
 STATICFILES_STORAGE = "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
+# STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+
 
 
 # Media files
