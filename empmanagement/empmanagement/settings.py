@@ -25,19 +25,22 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-%^gyhbwyl$qwe@+-d5igur&1wj*pr-dp^em0@i$&d36)&q_e%2'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-import os
+# Define allowed hosts
+ALLOWED_HOSTS = []
 
-ALLOWED_HOSTS = ['*']
-
-# Allow all host headers
-ALLOWED_HOSTS = ['*']
-
-# Render configuration
+# Add render hostname to allowed hosts
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+
+# Add localhost for development
+if DEBUG:
+    ALLOWED_HOSTS.extend(['localhost', '127.0.0.1'])
+else:
+    # In production, only allow your domain
+    ALLOWED_HOSTS.extend(['employee-management-shakktii.onrender.com'])
 
 
 # Application definition
@@ -91,39 +94,30 @@ WSGI_APPLICATION = 'empmanagement.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'empdb',
-#         'USER': 'postgres',
-#         'PASSWORD': 'shakktii@123',
-#         'HOST': 'localhost',
-#         'PORT': '9820', 
-#     }
-# }
-
-
-
-# import dj_database_url
-
 import dj_database_url
 
-# Database
-# https://docs.djangoproject.com/en/4.0/ref/settings/#databases
+# Database configuration
+db_from_env = dj_database_url.config(conn_max_age=600, ssl_require=True)
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'employee_management_db_lzmc',
-        'USER': 'employee_management_db_lzmc_user',
-        'PASSWORD': 'sJtGyYmYX15eWH5QrUSFvZFzaKwjLv6a',
-        'HOST': 'dpg-d0slr22dbo4c73f76v1g-a.oregon-postgres.render.com',
-        'PORT': '5432',
+if db_from_env:
+    DATABASES = {
+        'default': db_from_env
     }
-}
+else:
+    # Fallback to SQLite if no database URL is provided
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        }
+    }
 
-# Update database configuration with dj_database_url
-DATABASES['default'].update(dj_database_url.config(conn_max_age=600, ssl_require=True))
+# Ensure the database connection is secure
+if not DEBUG:
+    DATABASES['default']['CONN_MAX_AGE'] = 600
+    DATABASES['default']['OPTIONS'] = {
+        'sslmode': 'require',
+    }
 
 
 
@@ -172,27 +166,24 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
 
-# Simplified static file serving for production with WhiteNoise
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
 # Media files (user uploaded files)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# Simplified static file serving for production with WhiteNoise
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+
 # WhiteNoise configuration
 WHITENOISE_USE_FINDERS = True
+WHITENOISE_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 WHITENOISE_MANIFEST_STRICT = False
 WHITENOISE_ALLOW_ALL_ORIGINS = True
-
-# Required for WhiteNoise to work with manifest files
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Ensure Django knows where to find the admin static files
 ADMIN_MEDIA_PREFIX = '/static/admin/'
 
 
 
-# Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 

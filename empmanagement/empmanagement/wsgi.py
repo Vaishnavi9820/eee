@@ -2,9 +2,6 @@
 WSGI config for empmanagement project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/4.0/howto/deployment/wsgi/
 """
 
 import os
@@ -17,43 +14,51 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'empmanagement.settings')
 # This application object is used by the development server and any WSGI server
 application = get_wsgi_application()
 
-# Define the directory where static files are collected
-STATIC_ROOT = os.path.join(Path(__file__).resolve().parent.parent, 'staticfiles')
+# Apply WhiteNoise for static files in production
+if not os.environ.get('DEV'):
+    # Add your project directory to the Python path
+    BASE_DIR = Path(__file__).resolve().parent.parent
+    
+    # Define static root
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    
+    # Wrap the application with WhiteNoise
+    application = WhiteNoise(
+        application,
+        root=STATIC_ROOT,
+        prefix='/static/'
+    )
+    
+    # Add additional directories for WhiteNoise to serve
+    application.add_files(STATIC_ROOT, prefix='/')
+    
+    # Add media files if they exist
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+    if os.path.exists(MEDIA_ROOT):
+        application.add_files(MEDIA_ROOT, prefix='/media/')
 
-# Wrap the Django application with WhiteNoise for serving static files in production
-application = WhiteNoise(application)
-
-# Add the static files directory to WhiteNoise
-application.add_files(STATIC_ROOT, prefix='/static/')
-
-# Add the admin static files
-admin_static = os.path.join(Path(__file__).resolve().parent.parent, 'venv', 'Lib', 'site-packages', 'django', 'contrib', 'admin', 'static')
-if os.path.exists(admin_static):
-    application.add_files(admin_static, prefix='/static/admin/')
-
-
-# # SAFE SUPERUSER CREATION LOGIC
-# if os.environ.get('CREATE_SUPERUSER') == 'True':
-#     try:
-#         from django.contrib.auth import get_user_model
-#         User = get_user_model()
-#         if not User.objects.filter(username='admin').exists():
-#             print("Creating default superuser...")
-#             User.objects.create_superuser('Puushkar_Dhharaap', 'vaishnavichandgude0411@gmail.com', 'Puushkar@#987')
-#     except Exception as e:
-#         print("Superuser creation failed:", e)
-
-
-
-# 🛡️ Safe superuser creation logic
+# Comment out or remove the superuser creation code since it's causing issues
+# The superuser already exists, so we don't need to create it again
+"""
+# Safe superuser creation logic
 if os.environ.get('CREATE_SUPERUSER') == 'True':
     try:
         from django.contrib.auth import get_user_model
+        from django.db import IntegrityError
+        
         User = get_user_model()
-        if not User.objects.filter(username='admin').exists():
-            print("Creating superuser 'admin'...")
-            User.objects.create_superuser('Puushkar_Dhharaap', 'vaishnavichandgude0411@gmail.com', 'Puushkar@#987')
+        username = 'Puushkar_Dhharaap'
+        email = 'vaishnavichandgude0411@gmail.com'
+        
+        if not User.objects.filter(username=username).exists():
+            print(f"Creating superuser '{username}'...")
+            User.objects.create_superuser(username, email, 'Puushkar@#987')
+            print("Superuser created successfully.")
         else:
-            print("Superuser already exists.")
+            print(f"Superuser '{username}' already exists. Skipping creation.")
+            
+    except IntegrityError as e:
+        print(f"Superuser creation skipped (likely already exists): {e}")
     except Exception as e:
-        print("Superuser creation error:", e)
+        print(f"Error during superuser creation: {e}")
+"""
