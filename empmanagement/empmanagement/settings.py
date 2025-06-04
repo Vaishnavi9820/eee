@@ -106,17 +106,24 @@ WSGI_APPLICATION = 'empmanagement.wsgi.application'
 
 # import dj_database_url
 
-# DATABASES = {
-#     'default': dj_database_url.config(
-#         default=os.environ.get("DATABASE_URL"),
-#         conn_max_age=600,  # Keeps connection alive, improves performance
-#     )
-# }
 import dj_database_url
 
+# Database
+# https://docs.djangoproject.com/en/4.0/ref/settings/#databases
+
 DATABASES = {
-    'default': dj_database_url.config(default=os.environ.get('DATABASE_URL'))
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'employee_management_db_lzmc',
+        'USER': 'employee_management_db_lzmc_user',
+        'PASSWORD': 'sJtGyYmYX15eWH5QrUSFvZFzaKwjLv6a',
+        'HOST': 'dpg-d0slr22dbo4c73f76v1g-a.oregon-postgres.render.com',
+        'PORT': '5432',
+    }
 }
+
+# Update database configuration with dj_database_url
+DATABASES['default'].update(dj_database_url.config(conn_max_age=600, ssl_require=True))
 
 
 
