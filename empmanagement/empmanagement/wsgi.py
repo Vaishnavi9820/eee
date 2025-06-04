@@ -17,20 +17,19 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'empmanagement.settings')
 # This application object is used by the development server and any WSGI server
 application = get_wsgi_application()
 
+# Define the directory where static files are collected
+STATIC_ROOT = os.path.join(Path(__file__).resolve().parent.parent, 'staticfiles')
+
 # Wrap the Django application with WhiteNoise for serving static files in production
-application = WhiteNoise(
-    application,
-    root=os.path.join(Path(__file__).resolve().parent.parent, 'staticfiles'),
-    prefix='/static/'
-)
+application = WhiteNoise(application)
 
-# Add additional directories to the WhiteNoise application
-application.add_files(os.path.join(Path(__file__).resolve().parent.parent, 'static'), prefix='static/')
+# Add the static files directory to WhiteNoise
+application.add_files(STATIC_ROOT, prefix='/static/')
 
-# Serve admin static files
+# Add the admin static files
 admin_static = os.path.join(Path(__file__).resolve().parent.parent, 'venv', 'Lib', 'site-packages', 'django', 'contrib', 'admin', 'static')
 if os.path.exists(admin_static):
-    application.add_files(admin_static, prefix='admin/')
+    application.add_files(admin_static, prefix='/static/admin/')
 
 
 # # SAFE SUPERUSER CREATION LOGIC

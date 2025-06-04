@@ -35,17 +35,13 @@ urlpatterns = [
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-else:
-    # In production, serve static files through WhiteNoise
+
+# This is for production (works with WhiteNoise)
+# No need to serve static files in production as WhiteNoise handles them
+# But we still need to serve media files in production
+if not settings.DEBUG:
     urlpatterns += [
-        re_path(r'^static/(?P<path>.*)$', serve, {
-            'document_root': settings.STATIC_ROOT,
+        re_path(r'^media/(?P<path>.*)$', serve, {
+            'document_root': settings.MEDIA_ROOT,
         }),
     ]
-
-# Serve media files in production
-urlpatterns += [
-    re_path(r'^media/(?P<path>.*)$', serve, {
-        'document_root': settings.MEDIA_ROOT,
-    }),
-]
