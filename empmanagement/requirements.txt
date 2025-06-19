@@ -12,6 +12,10 @@ gunicorn==21.2.0
 
 # REST framework
 djangorestframework==3.14.0
+
+# Production requirements
+dj-database-url==2.1.0
+python-dotenv==1.0.0
 django-filter==24.2
 
 # API Documentation

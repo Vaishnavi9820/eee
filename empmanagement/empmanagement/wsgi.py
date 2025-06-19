@@ -9,33 +9,33 @@ from django.core.wsgi import get_wsgi_application
 from whitenoise import WhiteNoise
 from pathlib import Path
 
+# Set default settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'empmanagement.settings')
 
-# This application object is used by the development server and any WSGI server
+# Get the Django WSGI application
 application = get_wsgi_application()
 
-# Apply WhiteNoise for static files in production
-if not os.environ.get('DEV'):
-    # Add your project directory to the Python path
-    BASE_DIR = Path(__file__).resolve().parent.parent
-    
-    # Define static root
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-    
-    # Wrap the application with WhiteNoise
-    application = WhiteNoise(
-        application,
-        root=STATIC_ROOT,
-        prefix='/static/'
-    )
-    
-    # Add additional directories for WhiteNoise to serve
-    application.add_files(STATIC_ROOT, prefix='/')
-    
-    # Add media files if they exist
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-    if os.path.exists(MEDIA_ROOT):
-        application.add_files(MEDIA_ROOT, prefix='/media/')
+# Apply WhiteNoise for serving static files in production
+# This should match your STATIC_ROOT in settings.py
+STATIC_ROOT = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'staticfiles')
+
+# Wrap the application with WhiteNoise
+application = WhiteNoise(
+    application,
+    root=STATIC_ROOT,
+    prefix='/static/'
+)
+
+# Add additional directories to WhiteNoise (if needed)
+# application.add_files('/path/to/more/static/files', prefix='more-files/')
+
+# Add additional directories for WhiteNoise to serve
+application.add_files(STATIC_ROOT, prefix='/')
+
+# Add media files if they exist
+MEDIA_ROOT = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'media')
+if os.path.exists(MEDIA_ROOT):
+    application.add_files(MEDIA_ROOT, prefix='/media/')
 
 # Comment out or remove the superuser creation code since it's causing issues
 # The superuser already exists, so we don't need to create it again

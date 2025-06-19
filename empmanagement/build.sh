@@ -1,23 +1,24 @@
 #!/usr/bin/env bash
-# exit on error
-set -o errexit
+# Exit on error and print commands as they are executed
+set -o errexit -o xtrace
+
+echo "=== Starting build process ==="
 
 # Install Python dependencies
+echo "\n=== Installing Python dependencies ==="
 pip install --upgrade pip
 pip install -r requirements.txt
 
-# Install system dependencies if needed
-# Uncomment if you need to install system packages
-# apt-get update && apt-get install -y \
-#     libpq-dev \
-#     && rm -rf /var/lib/apt/lists/*
-
 # Run database migrations
+echo "\n=== Running database migrations ==="
 python manage.py migrate --noinput
 
 # Collect static files
-echo "Collecting static files..."
+echo "\n=== Collecting static files ==="
 python manage.py collectstatic --noinput --clear
+echo "\n=== Static files collected successfully ==="
+
+echo "\n=== Build completed successfully ==="
 
 # Create necessary directories
 echo "Creating directories..."
