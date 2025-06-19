@@ -234,15 +234,37 @@
                 
                 <div class="form-group">
                     <label for="designation">Designation:</label>
-                    <select class="form-control" id="designation" name="designation" required>
+                    <select class="form-control" id="designation" name="designation" onchange="toggleOtherDesignation()" required>
                         <option value="">-- Select Designation --</option>
                         <option value="Team Leader">Team Leader</option>
                         <option value="Project Manager">Project Manager</option>
                         <option value="Senior Developer">Senior Developer</option>
                         <option value="Junior Developer">Junior Developer</option>
-                        <option value="Intern">Intern</option>
+                        <option value="Full Stack Developer">Full Stack Developer</option>
+                        <option value="Graphic Designer">Graphic Designer</option>
+                        <option value="Video Editor">Video Editor</option>
+                        <option value="UI/UX Designer">UI/UX Designer</option>
+                        <option value="Content Writer">Content Writer</option>
+                        <option value="Digital Marketer">Digital Marketer</option>
                         <option value="QA Tester">QA Tester</option>
+                        <option value="DevOps Engineer">DevOps Engineer</option>
+                        <option value="System Administrator">System Administrator</option>
+                        <option value="Research Analyst">Research Analyst</option>
+                        <option value="Other">Other (Please specify)</option>
                     </select>
+                    <div id="otherDesignationContainer" style="display: none; margin-top: 10px;">
+                        <input type="text" class="form-control" id="otherDesignation" name="otherDesignation" placeholder="Please specify designation">
+                    </div>
+                    <script>
+                    function toggleOtherDesignation() {
+                        var designationSelect = document.getElementById('designation');
+                        var otherContainer = document.getElementById('otherDesignationContainer');
+                        otherContainer.style.display = (designationSelect.value === 'Other') ? 'block' : 'none';
+                        if (designationSelect.value !== 'Other') {
+                            document.getElementById('otherDesignation').value = '';
+                        }
+                    }
+                    </script>
                 </div>
                 
                 <div class="form-group">
