@@ -25,23 +25,45 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-%^gyhbwyl$qwe@+-d5igur&1wj*pr-dp^em0@i$&d36)&q_e%2'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+# Temporarily enable debug mode to see detailed error messages
+DEBUG = True
+
+# Configure logging to show errors in the console
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'ERROR',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
+}
 
 # Define allowed hosts
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']  # Temporarily allow all hosts for debugging
 
-# Add render hostname to allowed hosts
+# Add localhost and Render hostname
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
-# Add localhost for development
+# Add local development hosts
 if DEBUG:
     ALLOWED_HOSTS.extend(['localhost', '127.0.0.1'])
 else:
     # In production, only allow your domain
-    ALLOWED_HOSTS.extend(['employee-management-shakktii.onrender.com'])
-
+    ALLOWED_HOSTS.extend(['employee-management-shakktii.onrender.com', '.onrender.com'])
 
 # Application definition
 
