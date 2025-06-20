@@ -1,1 +1,1 @@
-web: gunicorn empmanagement.wsgi
+web: gunicorn empmanagement.wsgi --log-file - --bind 0.0.0.0:$PORT

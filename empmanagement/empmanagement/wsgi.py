@@ -16,21 +16,11 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'empmanagement.settings')
 application = get_wsgi_application()
 
 # Apply WhiteNoise for serving static files in production
-# This should match your STATIC_ROOT in settings.py
+application = WhiteNoise(application)
+
+# Add static files
 STATIC_ROOT = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'staticfiles')
-
-# Wrap the application with WhiteNoise
-application = WhiteNoise(
-    application,
-    root=STATIC_ROOT,
-    prefix='/static/'
-)
-
-# Add additional directories to WhiteNoise (if needed)
-# application.add_files('/path/to/more/static/files', prefix='more-files/')
-
-# Add additional directories for WhiteNoise to serve
-application.add_files(STATIC_ROOT, prefix='/')
+application.add_files(STATIC_ROOT, prefix='/static/')
 
 # Add media files if they exist
 MEDIA_ROOT = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'media')
