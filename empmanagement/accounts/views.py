@@ -489,6 +489,12 @@ def login_user(request):
                             if emp not in matching_employees:
                                 matching_employees.append(emp)
                     
+                    # Get the list of designations from the helper function
+                    designations = get_designations()
+                    
+                    # Debug: Print designations to console
+                    print("Designations being set in view:", designations)
+                    
                     # Prepare context for the linking page
                     context = {
                         'authenticated_user': user,
@@ -498,7 +504,11 @@ def login_user(request):
                         'all_employees': all_employees[:20],  # Limit to first 20
                         'matching_employees': matching_employees[:5],  # Show top 5 potential matches
                         'user_email': user.email,
+                        'designations': designations,  # Make sure this matches the template variable
                     }
+                    
+                    # Debug: Print context keys to console
+                    print("Context keys:", context.keys())
                     return render(request, 'employee/user_employee_linking.html', context)
                     
                 except Exception as e:
@@ -952,6 +962,26 @@ def logout_user(request):
 
 #     return redirect('/')
 
+def get_designations():
+    """Helper function to get the list of designations"""
+    return [
+        'Team Leader',
+        'Project Manager',
+        'Senior Developer',
+        'Junior Developer',
+        'Full Stack Developer',
+        'Graphic Designer',
+        'Video Editor',
+        'UI Designer',
+        'Content Writer',
+        'Digital Marketer',
+        'QA Tester',
+        'DevOps Engineer',
+        'System Administrator',
+        'Research Analyst',
+        'Other'
+    ]
+
 def link_user_to_employee(request):
     """
     View to handle linking a user account to an employee record or creating a new employee record.
@@ -960,6 +990,15 @@ def link_user_to_employee(request):
     if not request.user.is_authenticated:
         messages.error(request, "You must be logged in to perform this action.")
         return redirect('login_user')
+    
+    # Initialize context with designations
+    context = {
+        'designations': get_designations(),
+        'authenticated_user': request.user,
+        'username': request.user.username,
+        'user_id': request.user.id,
+        'user_email': request.user.email,
+    }
     
     if request.method == 'POST':
         user_id = request.POST.get('user_id')
