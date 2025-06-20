@@ -15,7 +15,7 @@ djangorestframework==3.14.0
 
 # Production requirements
 dj-database-url==2.1.0
-python-dotenv==1.0.0
+python-dotenv==1.0.1
 django-filter==24.2
 
 # API Documentation
@@ -26,9 +26,6 @@ django-cors-headers==4.3.1
 
 # Image processing
 Pillow==10.2.0
-
-# Environment variables
-python-dotenv==1.0.1
 
 # Required dependencies
 asgiref==3.8.1
@@ -44,7 +41,6 @@ Pygments==2.18.0
 PyYAML==6.0.1
 
 # Production dependencies
-dj-database-url==2.1.0
 requests==2.31.0
 six==1.16.0
 urllib3==2.2.1
