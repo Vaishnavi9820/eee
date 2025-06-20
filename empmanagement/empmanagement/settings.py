@@ -97,27 +97,22 @@ WSGI_APPLICATION = 'empmanagement.wsgi.application'
 import dj_database_url
 
 # Database configuration
-db_from_env = dj_database_url.config(conn_max_age=600, ssl_require=True)
-
-if db_from_env:
-    DATABASES = {
-        'default': db_from_env
-    }
-else:
-    # Fallback to SQLite if no database URL is provided
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        }
-    }
+DATABASES = {
+    'default': dj_database_url.config(
+        default='sqlite:///' + os.path.join(BASE_DIR, 'db.sqlite3'),
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
+}
 
 # Ensure the database connection is secure
-if not DEBUG:
-    DATABASES['default']['CONN_MAX_AGE'] = 600
-    DATABASES['default']['OPTIONS'] = {
-        'sslmode': 'require',
-    }
+if not DEBUG and 'sqlite' not in DATABASES['default']['ENGINE']:
+    DATABASES['default'].update({
+        'CONN_MAX_AGE': 600,
+        'OPTIONS': {
+            'sslmode': 'require',
+        },
+    })
 
 
 
@@ -165,6 +160,10 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Ensure the staticfiles directory exists
+os.makedirs(STATIC_ROOT, exist_ok=True)
 
 # Media files (user uploaded files)
 MEDIA_URL = '/media/'

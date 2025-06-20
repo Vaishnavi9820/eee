@@ -15,15 +15,19 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'empmanagement.settings')
 # Get the Django WSGI application
 application = get_wsgi_application()
 
-# Apply WhiteNoise for serving static files in production
-application = WhiteNoise(application)
+# Define paths
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# Add static files
-STATIC_ROOT = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'staticfiles')
-application.add_files(STATIC_ROOT, prefix='/static/')
+# Apply WhiteNoise for serving static files in production
+application = WhiteNoise(
+    application,
+    root=STATIC_ROOT,
+    prefix='/static/'
+)
 
 # Add media files if they exist
-MEDIA_ROOT = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'media')
 if os.path.exists(MEDIA_ROOT):
     application.add_files(MEDIA_ROOT, prefix='/media/')
 
