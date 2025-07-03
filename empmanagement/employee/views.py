@@ -604,17 +604,26 @@ def make_request(request):
     )
     
     # Calculate statistics
+    # Expenditure Requests
     total_expenditure_count = ExpenditureRequest.objects.filter(employee=employee).count()
     approved_expenditures = ExpenditureRequest.objects.filter(employee=employee, status='Approved').count()
     pending_expenditures = ExpenditureRequest.objects.filter(employee=employee, status='Pending').count()
+    rejected_expenditures = ExpenditureRequest.objects.filter(employee=employee, status='Rejected').count()
+    paid_expenditures = ExpenditureRequest.objects.filter(employee=employee, status='Paid').count()
 
+    # Leave Requests
     total_leaves = LeaveRequest.objects.filter(employee=employee).count()
     approved_leaves = LeaveRequest.objects.filter(employee=employee, status='Approved').count()
     pending_leaves = LeaveRequest.objects.filter(employee=employee, status='Pending').count()
+    rejected_leaves = LeaveRequest.objects.filter(employee=employee, status='Rejected').count()
+    hold_leaves = LeaveRequest.objects.filter(employee=employee, status='Hold').count()
 
+    # Other Requests
     total_other_requests = OtherRequest.objects.filter(employee=employee).count()
     approved_other_requests = OtherRequest.objects.filter(employee=employee, status='Approved').count()
     pending_other_requests = OtherRequest.objects.filter(employee=employee, status='Pending').count()
+    rejected_other_requests = OtherRequest.objects.filter(employee=employee, status='Rejected').count()
+    hold_other_requests = OtherRequest.objects.filter(employee=employee, status='Hold').count()
 
     # Update context with all data
     context = {
@@ -625,15 +634,27 @@ def make_request(request):
         'expenditure_data': expenditure_data,
         'leave_data': leave_data,
         'other_data': other_data,
+        
+        # Expenditure stats
         'total_expenditure_count': total_expenditure_count,
         'approved_expenditures': approved_expenditures,
         'pending_expenditures': pending_expenditures,
+        'rejected_expenditures': rejected_expenditures,
+        'paid_expenditures': paid_expenditures,
+        
+        # Leave stats
         'total_leaves': total_leaves,
         'approved_leaves': approved_leaves,
         'pending_leaves': pending_leaves,
+        'rejected_leaves': rejected_leaves,
+        'hold_leaves': hold_leaves,
+        
+        # Other requests stats
         'total_other_requests': total_other_requests,
         'approved_other_requests': approved_other_requests,
         'pending_other_requests': pending_other_requests,
+        'rejected_other_requests': rejected_other_requests,
+        'hold_other_requests': hold_other_requests,
     }
 
     if request.method == 'POST':

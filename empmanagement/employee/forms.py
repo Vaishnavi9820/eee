@@ -113,6 +113,13 @@ class EmployeeAdminForm(forms.ModelForm):
         help_text='Check this to automatically create a user account for this employee'
     )
     
+    designation = forms.CharField(
+        max_length=50,
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'vTextField'}),
+        help_text='Enter the employee\'s designation (e.g., Software Engineer, HR Manager)'
+    )
+    
     class Meta:
         model = Employee
         fields = '__all__'

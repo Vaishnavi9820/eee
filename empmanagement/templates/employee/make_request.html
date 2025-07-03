@@ -34,6 +34,14 @@
                     <span class="stat-label">Pending</span>
                     <span class="stat-value">{{ pending_expenditures|default:"0" }}</span>
                 </div>
+                <div class="stat-item">
+                    <span class="stat-label">Rejected</span>
+                    <span class="stat-value">{{ rejected_expenditures|default:"0" }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Paid</span>
+                    <span class="stat-value">{{ paid_expenditures|default:"0" }}</span>
+                </div>
             </div>
         </div>
         
@@ -48,12 +56,20 @@
                     <span class="stat-value">{{ total_leaves|default:"0" }}</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label">Approved Leaves</span>
+                    <span class="stat-label">Approved</span>
                     <span class="stat-value">{{ approved_leaves|default:"0" }}</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-label">Pending Leaves</span>
+                    <span class="stat-label">Pending</span>
                     <span class="stat-value">{{ pending_leaves|default:"0" }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Rejected</span>
+                    <span class="stat-value">{{ rejected_leaves|default:"0" }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">On Hold</span>
+                    <span class="stat-value">{{ hold_leaves|default:"0" }}</span>
                 </div>
             </div>
         </div>
@@ -75,6 +91,14 @@
                 <div class="stat-item">
                     <span class="stat-label">Pending</span>
                     <span class="stat-value">{{ pending_other_requests|default:"0" }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Rejected</span>
+                    <span class="stat-value">{{ rejected_other_requests|default:"0" }}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">On Hold</span>
+                    <span class="stat-value">{{ hold_other_requests|default:"0" }}</span>
                 </div>
             </div>
         </div>
@@ -285,117 +309,133 @@
             });
         }
         
-        populateHistoryTable(filteredData);
-    }
-    
-    // Populate the history table with data
-    function populateHistoryTable(data) {
-        let tbody = document.getElementById("historyData");
-        tbody.innerHTML = "";
+        // Populate the table with filtered data
+        const tbody = document.getElementById('historyData');
+        tbody.innerHTML = '';
         
-        if (data.length === 0) {
-            let row = document.createElement('tr');
-            row.innerHTML = `<td colspan="5" class="p-2 text-center">No data found for the selected period</td>`;
-            tbody.appendChild(row);
-            return;
-        }
-        
-        data.forEach(item => {
-            let row = document.createElement('tr');
+        filteredData.forEach(item => {
+            const row = document.createElement('tr');
+            
+            // Define status colors
+            const statusColors = {
+                'approved': 'bg-green-100 text-green-800',
+                'pending': 'bg-yellow-100 text-yellow-800',
+                'rejected': 'bg-red-100 text-red-800',
+                'deleted': 'bg-red-100 text-red-800',
+                'paid': 'bg-blue-100 text-blue-800',
+                'unpaid': 'bg-gray-100 text-gray-800',
+                'hold': 'bg-purple-100 text-purple-800'
+            };
+            
+            // Get the appropriate status class or use a default
+            const statusClass = statusColors[item.status.toLowerCase()] || 'bg-gray-100 text-gray-800';
+            
             if (currentHistoryType === 'expenditure') {
                 row.innerHTML = `
-                    <td class="p-2">${item.name}</td>
-                    <td class="p-2">${item.amount}</td>
-                    <td class="p-2">${item.date}</td>
-                    <td class="p-2"></td>
-                    <td class="p-2">${item.status}</td>
+                    <td class="p-2">${item.expenditure_name || ''}</td>
+                    <td class="p-2">${item.amount ? '₹' + parseFloat(item.amount).toFixed(2) : ''}</td>
+                    <td class="p-2">${new Date(item.date).toLocaleDateString()}</td>
+                    <td class="p-2">
+                        <span class="px-2 py-1 rounded-full text-xs ${statusClass}">${item.status}</span>
+                    </td>
                 `;
             } else if (currentHistoryType === 'leave') {
                 row.innerHTML = `
-                    <td class="p-2">${item.title}</td>
-                    <td class="p-2">${item.from_date}</td>
-                    <td class="p-2">${item.to_date}</td>
-                    <td class="p-2 message-cell">${item.message ? (item.message.length > 30 ? item.message.substring(0, 30) + '...' : item.message) : ""}</td>
-                    <td class="p-2">${item.status}</td>
+                    <td class="p-2">${item.title || ''}</td>
+                    <td class="p-2">${new Date(item.from_date).toLocaleDateString()}</td>
+                    <td class="p-2">${new Date(item.to_date).toLocaleDateString()}</td>
+                    <td class="p-2">
+                        <span class="px-2 py-1 rounded-full text-xs ${statusClass}">${item.status}</span>
+                    </td>
                 `;
             } else {
                 row.innerHTML = `
-                    <td class="p-2">${item.title}</td>
-                    <td class="p-2">${item.date}</td>
-                    <td class="p-2 message-cell">${item.message ? (item.message.length > 30 ? item.message.substring(0, 30) + '...' : item.message) : ""}</td>
-                    <td class="p-2"></td>
-                    <td class="p-2">${item.status}</td>
+                    <td class="p-2">${item.title || ''}</td>
+                    <td class="p-2">${item.message || ''}</td>
+                    <td class="p-2">${new Date(item.date).toLocaleDateString()}</td>
+                    <td class="p-2">
+                        <span class="px-2 py-1 rounded-full text-xs ${statusClass}">${item.status}</span>
+                    </td>
                 `;
             }
+            
             tbody.appendChild(row);
         });
     }
 
     function showHistory(type) {
-        // Hide forms when viewing history
-        document.getElementById("formsContainer").classList.add("hidden");
-        document.getElementById("requestButtons").classList.add("hidden");
-        
-        // Show history section
-        document.getElementById("historySection").classList.remove("hidden");
-        
-        let col1 = "", col2 = "", col3 = "", col4 = "";
-
-        // Store the current history type
+        // Set the current history type
         currentHistoryType = type;
         
-        // Reset filter to 'all'
-        currentFilterPeriod = 'all';
-        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelector('.filter-btn[onclick*="all"]').classList.add('active');
-
-        if (type === 'expenditure') {
-            document.getElementById("historyTitle").innerText = "Expenditure Requests History";
-            col1 = "Expenditure Name";
-            col2 = "Amount";
-            col3 = "Date";
-            col4 = "";
-            currentHistoryData = JSON.parse('{{ expenditure_data|safe|default:"[]" }}');
-        } else if (type === 'leave') {
-            document.getElementById("historyTitle").innerText = "Leave Requests History";
-            col1 = "Title";
-            col2 = "From Date";
-            col3 = "To Date";
-            col4 = "Message";
-            currentHistoryData = JSON.parse('{{ leave_data|safe|default:"[]" }}');
-        } else {
-            document.getElementById("historyTitle").innerText = "Other Requests History";
-            col1 = "Title";
-            col2 = "Date";
-            col3 = "Message";
-            col4 = "";
-            currentHistoryData = JSON.parse('{{ other_data|safe|default:"[]" }}');
-        }
-
-        document.getElementById("col1").innerText = col1;
-        document.getElementById("col2").innerText = col2;
-        document.getElementById("col3").innerText = col3;
-        document.getElementById("col4").innerText = col4;
-        
-        // Display all data initially
-        displayFilteredHistory();
-        
-        // Add a back button to return to forms
-        let backBtn = document.createElement('button');
-        backBtn.innerText = "Back to Forms";
-        backBtn.className = "mt-4 p-2 bg-blue-500 text-white rounded";
-        backBtn.onclick = function() {
-            document.getElementById("historySection").classList.add("hidden");
-            document.getElementById("formsContainer").classList.remove("hidden");
-            document.getElementById("requestButtons").classList.remove("hidden");
+        // Set the title based on the type
+        const titleMap = {
+            'expenditure': 'Expenditure Requests',
+            'leave': 'Leave Requests',
+            'other': 'Other Requests'
         };
         
-        // Clear any existing back button before adding a new one
-        let existingBackBtn = document.querySelector('#historySection .mt-4.p-2');
-        if (existingBackBtn) existingBackBtn.remove();
+        document.getElementById('historyTitle').textContent = titleMap[type] || 'Request History';
         
-        document.getElementById("historySection").appendChild(backBtn);
+        // Get the data from the template
+        let data = [];
+        if (type === 'expenditure') {
+            data = JSON.parse('{{ expenditure_data|escapejs }}');
+        } else if (type === 'leave') {
+            data = JSON.parse('{{ leave_data|escapejs }}');
+        } else if (type === 'other') {
+            data = JSON.parse('{{ other_data|escapejs }}');
+        }
+        
+        // Store the data globally for filtering
+        currentHistoryData = data;
+        
+        // Set column headers based on type
+        const col1 = document.getElementById('col1');
+        const col2 = document.getElementById('col2');
+        const col3 = document.getElementById('col3');
+        const col4 = document.getElementById('col4');
+        
+        if (type === 'expenditure') {
+            col1.textContent = 'Expenditure';
+            col2.textContent = 'Amount';
+            col3.textContent = 'Date';
+            col4.textContent = 'Status';
+        } else if (type === 'leave') {
+            col1.textContent = 'Title';
+            col2.textContent = 'From';
+            col3.textContent = 'To';
+            col4.textContent = 'Status';
+        } else if (type === 'other') {
+            col1.textContent = 'Title';
+            col2.textContent = 'Message';
+            col3.textContent = 'Date';
+            col4.textContent = 'Status';
+        }
+        
+        // Show the history section and hide the forms
+        document.getElementById('historySection').classList.remove('hidden');
+        document.getElementById('formsContainer').classList.add('hidden');
+        document.getElementById('historyOptions').classList.add('hidden');
+        
+        // Display the filtered data
+        displayFilteredHistory();
     }
+
+    // Add a back button to return to forms
+    let backBtn = document.createElement('button');
+    backBtn.innerText = "Back to Forms";
+    backBtn.className = "mt-4 p-2 bg-blue-500 text-white rounded";
+    backBtn.onclick = function() {
+        document.getElementById("historySection").classList.add("hidden");
+        document.getElementById("formsContainer").classList.remove("hidden");
+        document.getElementById("requestButtons").classList.remove("hidden");
+    };
+    
+    // Clear any existing back button before adding a new one
+    let existingBackBtn = document.querySelector('#historySection .mt-4.p-2');
+    if (existingBackBtn) existingBackBtn.remove();
+    
+    document.getElementById("historySection").appendChild(backBtn);
 </script>
 
 <style>
