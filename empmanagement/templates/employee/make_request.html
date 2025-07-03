@@ -67,10 +67,7 @@
                     <span class="stat-label">Rejected</span>
                     <span class="stat-value">{{ rejected_leaves|default:"0" }}</span>
                 </div>
-                <div class="stat-item">
-                    <span class="stat-label">On Hold</span>
-                    <span class="stat-value">{{ hold_leaves|default:"0" }}</span>
-                </div>
+
             </div>
         </div>
         
@@ -96,10 +93,7 @@
                     <span class="stat-label">Rejected</span>
                     <span class="stat-value">{{ rejected_other_requests|default:"0" }}</span>
                 </div>
-                <div class="stat-item">
-                    <span class="stat-label">On Hold</span>
-                    <span class="stat-value">{{ hold_other_requests|default:"0" }}</span>
-                </div>
+
             </div>
         </div>
     </div>
@@ -332,29 +326,29 @@
             
             if (currentHistoryType === 'expenditure') {
                 row.innerHTML = `
-                    <td class="p-2">${item.expenditure_name || ''}</td>
-                    <td class="p-2">${item.amount ? '₹' + parseFloat(item.amount).toFixed(2) : ''}</td>
-                    <td class="p-2">${new Date(item.date).toLocaleDateString()}</td>
+                    <td class="p-2">${item.expenditure_name || item.name || 'N/A'}</td>
+                    <td class="p-2">${item.amount ? '₹' + parseFloat(item.amount).toFixed(2) : 'N/A'}</td>
+                    <td class="p-2">${item.date ? new Date(item.date).toLocaleDateString() : 'N/A'}</td>
                     <td class="p-2">
-                        <span class="px-2 py-1 rounded-full text-xs ${statusClass}">${item.status}</span>
+                        <span class="px-2 py-1 rounded-full text-xs ${statusClass}">${item.status || 'N/A'}</span>
                     </td>
                 `;
             } else if (currentHistoryType === 'leave') {
                 row.innerHTML = `
-                    <td class="p-2">${item.title || ''}</td>
-                    <td class="p-2">${new Date(item.from_date).toLocaleDateString()}</td>
-                    <td class="p-2">${new Date(item.to_date).toLocaleDateString()}</td>
+                    <td class="p-2">${item.title || 'N/A'}</td>
+                    <td class="p-2">${item.from_date ? new Date(item.from_date).toLocaleDateString() : 'N/A'}</td>
+                    <td class="p-2">${item.to_date ? new Date(item.to_date).toLocaleDateString() : 'N/A'}</td>
                     <td class="p-2">
-                        <span class="px-2 py-1 rounded-full text-xs ${statusClass}">${item.status}</span>
+                        <span class="px-2 py-1 rounded-full text-xs ${statusClass}">${item.status || 'N/A'}</span>
                     </td>
                 `;
-            } else {
+            } else if (currentHistoryType === 'other') {
                 row.innerHTML = `
-                    <td class="p-2">${item.title || ''}</td>
-                    <td class="p-2">${item.message || ''}</td>
-                    <td class="p-2">${new Date(item.date).toLocaleDateString()}</td>
+                    <td class="p-2">${item.title || 'N/A'}</td>
+                    <td class="p-2">${item.message || 'N/A'}</td>
+                    <td class="p-2">${item.date ? new Date(item.date).toLocaleDateString() : 'N/A'}</td>
                     <td class="p-2">
-                        <span class="px-2 py-1 rounded-full text-xs ${statusClass}">${item.status}</span>
+                        <span class="px-2 py-1 rounded-full text-xs ${statusClass}">${item.status || 'N/A'}</span>
                     </td>
                 `;
             }
@@ -378,12 +372,22 @@
         
         // Get the data from the template
         let data = [];
-        if (type === 'expenditure') {
-            data = JSON.parse('{{ expenditure_data|escapejs }}');
-        } else if (type === 'leave') {
-            data = JSON.parse('{{ leave_data|escapejs }}');
-        } else if (type === 'other') {
-            data = JSON.parse('{{ other_data|escapejs }}');
+        try {
+            if (type === 'expenditure') {
+                data = JSON.parse('{{ expenditure_data|escapejs }}');
+                // Ensure we have the expenditure_name field
+                data = data.map(item => ({
+                    ...item,
+                    name: item.expenditure_name || item.name || 'N/A'
+                }));
+            } else if (type === 'leave') {
+                data = JSON.parse('{{ leave_data|escapejs }}');
+            } else if (type === 'other') {
+                data = JSON.parse('{{ other_data|escapejs }}');
+            }
+        } catch (e) {
+            console.error('Error parsing history data:', e);
+            data = [];
         }
         
         // Store the data globally for filtering

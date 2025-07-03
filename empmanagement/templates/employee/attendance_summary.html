@@ -165,8 +165,18 @@
     </div>
     {% endif %}
 
-    <!-- History Section -->
-    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+    <!-- History Section Toggle Button -->
+    <div class="flex justify-end mb-4">
+        <button id="historyToggle" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg shadow-sm transition-colors flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Show History
+        </button>
+    </div>
+
+    <!-- History Section (initially hidden) -->
+    <div id="historySection" class="bg-white rounded-lg shadow-md p-6 mb-8 hidden">
         <div class="flex items-center justify-between mb-6">
             <div class="flex items-center">
                 <div class="p-2 bg-purple-100 rounded-full mr-3">
@@ -193,7 +203,7 @@
                     {% for month in months_history %}
                     <tr class="hover:bg-gray-50">
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {{ month.month|date:"F" }} {{ month.year }}
+                            {{ month.month|date:"F-Y" }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {{ month.working_days }} days
@@ -213,6 +223,29 @@
             </table>
         </div>
     </div>
+    
+    <script>
+        document.getElementById('historyToggle').addEventListener('click', function() {
+            const historySection = document.getElementById('historySection');
+            const toggleButton = document.getElementById('historyToggle');
+            
+            if (historySection.classList.contains('hidden')) {
+                historySection.classList.remove('hidden');
+                toggleButton.innerHTML = `
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Hide History`;
+            } else {
+                historySection.classList.add('hidden');
+                toggleButton.innerHTML = `
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Show History`;
+            }
+        });
+    </script>
 
     <!-- Timezone Info -->
     <div class="text-right text-sm text-gray-500 mb-8">

@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils import timezone
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, date
 from calendar import monthrange
 from .models import Employee, Attendance, LeaveRequest, SalaryDisbursement
 
