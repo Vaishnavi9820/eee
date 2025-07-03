@@ -2,6 +2,60 @@
 {% load employee_tags %}
 
 {% block content %}
+<style>
+    /* Table styles */
+    .table-container {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .attendance-table {
+        width: 100%;
+        min-width: 800px; /* Ensure minimum width for all columns */
+        border-collapse: collapse;
+    }
+    
+    .attendance-table th,
+    .attendance-table td {
+        padding: 0.75rem;
+        text-align: left;
+        border-bottom: 1px solid #e5e7eb;
+        white-space: nowrap;
+    }
+    
+    .attendance-table th {
+        background-color: #f9fafb;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        color: #6b7280;
+        letter-spacing: 0.05em;
+    }
+    
+    .attendance-table tbody tr:hover {
+        background-color: #f9fafb;
+    }
+    
+    /* Ensure month column has enough width */
+    .month-cell {
+        min-width: 180px;
+    }
+    
+    /* Make table responsive */
+    @media (max-width: 768px) {
+        .attendance-table th,
+        .attendance-table td {
+            padding: 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .month-cell {
+            min-width: 150px;
+        }
+    }
+</style>
+
 <div class="container mx-auto px-4 py-8">
     <!-- 12-Month History was removed as requested -->
 
@@ -176,8 +230,8 @@
     </div>
 
     <!-- History Section (initially hidden) -->
-    <div id="historySection" class="bg-white rounded-lg shadow-md p-6 mb-8 hidden">
-        <div class="flex items-center justify-between mb-6">
+    <div id="historySection" class="bg-white rounded-lg shadow-md p-4 mb-8 hidden">
+        <div class="flex items-center justify-between mb-4">
             <div class="flex items-center">
                 <div class="p-2 bg-purple-100 rounded-full mr-3">
                     <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -188,34 +242,34 @@
             </div>
         </div>
         
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
+        <div class="table-container">
+            <table class="attendance-table">
                 <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Month</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Working Days</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Present Days</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Leaves Taken</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salary</th>
+                    <tr class="text-xs">
+                        <th class="px-2 py-2 text-left font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap w-1/5">Month</th>
+                        <th class="px-2 py-2 text-left font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap w-1/5">Working Days</th>
+                        <th class="px-2 py-2 text-left font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap w-1/5">Present Days</th>
+                        <th class="px-2 py-2 text-left font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap w-1/5">Leaves Taken</th>
+                        <th class="px-2 py-2 text-left font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap w-1/5">Salary</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    {% for month in months_history %}
+                    {% for month_data in months_history %}
                     <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {{ month.month|date:"F-Y" }}
+                        <td class="month-cell px-3 py-3 font-medium text-gray-900">
+                            {{ month_data.month|stringformat:"02d" }}/{{ month_data.year }} - {{ month_data.month|stringformat:"02d"|date:"%B" }} {{ month_data.year }}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {{ month.working_days }} days
+                        <td class="px-3 py-3 whitespace-nowrap text-gray-500">
+                            {{ month_data.working_days }} days
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {{ month.present_days }} days
+                        <td class="px-3 py-3 whitespace-nowrap text-gray-500">
+                            {{ month_data.present_days }} days
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {{ month.leaves }} days
+                        <td class="px-3 py-3 whitespace-nowrap text-gray-500">
+                            {{ month_data.leaves }} days
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                            ₹{{ month.salary|floatformat:2 }}
+                        <td class="px-3 py-3 whitespace-nowrap font-medium text-green-600">
+                            ₹{{ month_data.salary|floatformat:2 }}
                         </td>
                     </tr>
                     {% endfor %}

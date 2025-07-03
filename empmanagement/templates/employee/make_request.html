@@ -212,8 +212,7 @@
                     <th id="col1" class="p-2"></th>
                     <th id="col2" class="p-2"></th>
                     <th id="col3" class="p-2"></th>
-                    <th id="col4" class="p-2"></th>
-                    <th class="p-2">Status</th>
+                    <th id="col4" class="p-2">Status</th>
                 </tr>
             </thead>
             <tbody id="historyData"></tbody>
@@ -334,6 +333,7 @@
                     </td>
                 `;
             } else if (currentHistoryType === 'leave') {
+                // For leave requests, show: Title, From Date, To Date, Days, Status
                 row.innerHTML = `
                     <td class="p-2">${item.title || 'N/A'}</td>
                     <td class="p-2">${item.from_date ? new Date(item.from_date).toLocaleDateString() : 'N/A'}</td>
@@ -343,9 +343,10 @@
                     </td>
                 `;
             } else if (currentHistoryType === 'other') {
+                // For other requests, show: Title, Message, Date, Status
                 row.innerHTML = `
                     <td class="p-2">${item.title || 'N/A'}</td>
-                    <td class="p-2">${item.message || 'N/A'}</td>
+                    <td class="p-2">${item.message ? (item.message.length > 30 ? item.message.substring(0, 30) + '...' : item.message) : 'N/A'}</td>
                     <td class="p-2">${item.date ? new Date(item.date).toLocaleDateString() : 'N/A'}</td>
                     <td class="p-2">
                         <span class="px-2 py-1 rounded-full text-xs ${statusClass}">${item.status || 'N/A'}</span>
@@ -405,14 +406,14 @@
             col3.textContent = 'Date';
             col4.textContent = 'Status';
         } else if (type === 'leave') {
-            col1.textContent = 'Title';
-            col2.textContent = 'From';
-            col3.textContent = 'To';
+            col1.textContent = 'Leave Type';
+            col2.textContent = 'From Date';
+            col3.textContent = 'To Date';
             col4.textContent = 'Status';
         } else if (type === 'other') {
-            col1.textContent = 'Title';
+            col1.textContent = 'Request Title';
             col2.textContent = 'Message';
-            col3.textContent = 'Date';
+            col3.textContent = 'Request Date';
             col4.textContent = 'Status';
         }
         
