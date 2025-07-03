@@ -257,7 +257,7 @@
                     {% for month_data in months_history %}
                     <tr class="hover:bg-gray-50">
                         <td class="month-cell px-3 py-3 font-medium text-gray-900">
-                            {{ month_data.month|stringformat:"02d" }}/{{ month_data.year }} - {{ month_data.month|stringformat:"02d"|date:"%B" }} {{ month_data.year }}
+                            {{ month_data.month|stringformat:"02d" }}/{{ month_data.year }}
                         </td>
                         <td class="px-3 py-3 whitespace-nowrap text-gray-500">
                             {{ month_data.working_days }} days

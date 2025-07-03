@@ -333,23 +333,27 @@
                     </td>
                 `;
             } else if (currentHistoryType === 'leave') {
-                // For leave requests, show: Title, From Date, To Date, Days, Status
+                // For leave requests, show: Leave Type, From Date, To Date, Status
                 row.innerHTML = `
                     <td class="p-2">${item.title || 'N/A'}</td>
-                    <td class="p-2">${item.from_date ? new Date(item.from_date).toLocaleDateString() : 'N/A'}</td>
-                    <td class="p-2">${item.to_date ? new Date(item.to_date).toLocaleDateString() : 'N/A'}</td>
+                    <td class="p-2">${item.from_date ? new Date(item.from_date).toLocaleDateString('en-IN') : 'N/A'}</td>
+                    <td class="p-2">${item.to_date ? new Date(item.to_date).toLocaleDateString('en-IN') : 'N/A'}</td>
                     <td class="p-2">
                         <span class="px-2 py-1 rounded-full text-xs ${statusClass}">${item.status || 'N/A'}</span>
                     </td>
                 `;
             } else if (currentHistoryType === 'other') {
-                // For other requests, show: Title, Message, Date, Status
+                // For other requests, show: Request Title, Message, Request Date, Status
+                const messagePreview = item.message ? 
+                    (item.message.length > 50 ? item.message.substring(0, 50) + '...' : item.message) : 
+                    'No message';
+                    
                 row.innerHTML = `
-                    <td class="p-2">${item.title || 'N/A'}</td>
-                    <td class="p-2">${item.message ? (item.message.length > 30 ? item.message.substring(0, 30) + '...' : item.message) : 'N/A'}</td>
-                    <td class="p-2">${item.date ? new Date(item.date).toLocaleDateString() : 'N/A'}</td>
+                    <td class="p-2 font-medium">${item.title || 'N/A'}</td>
+                    <td class="p-2 text-gray-600" title="${item.message || ''}">${messagePreview}</td>
+                    <td class="p-2 whitespace-nowrap">${item.date ? new Date(item.date).toLocaleDateString('en-IN') : 'N/A'}</td>
                     <td class="p-2">
-                        <span class="px-2 py-1 rounded-full text-xs ${statusClass}">${item.status || 'N/A'}</span>
+                        <span class="px-2 py-1 rounded-full text-xs ${statusClass}">${item.status || 'Pending'}</span>
                     </td>
                 `;
             }
@@ -383,8 +387,24 @@
                 }));
             } else if (type === 'leave') {
                 data = JSON.parse('{{ leave_data|escapejs }}');
+                // Ensure we have the required fields for leave requests
+                data = data.map(item => ({
+                    ...item,
+                    title: item.title || 'N/A',
+                    from_date: item.from_date,
+                    to_date: item.to_date,
+                    status: item.status || 'Pending'
+                }));
             } else if (type === 'other') {
                 data = JSON.parse('{{ other_data|escapejs }}');
+                // Ensure we have the required fields for other requests
+                data = data.map(item => ({
+                    ...item,
+                    title: item.title || 'N/A',
+                    message: item.message || '',
+                    date: item.date,
+                    status: item.status || 'Pending'
+                }));
             }
         } catch (e) {
             console.error('Error parsing history data:', e);

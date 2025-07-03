@@ -8,8 +8,8 @@
       overflow-x: hidden;
     }
     .monthly-details-container {
-      margin: 20px 0;
-      padding: 0 15px;
+      margin: 0;
+      padding: 15px 30px 30px;
       width: 100%;
       box-sizing: border-box;
     }
@@ -25,11 +25,30 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
     
+    @media (max-width: 1024px) {
+      .monthly-details-container {
+        padding: 15px;
+      }
+      .employee-table-container {
+        margin: 0 -15px;
+        padding: 0 15px;
+      }
+      .employee-table th:first-child,
+      .employee-table td:first-child {
+        padding-left: 15px;
+      }
+      .employee-table th:last-child,
+      .employee-table td:last-child {
+        padding-right: 15px;
+      }
+    }
+    
     @media (max-width: 768px) {
       .filter-form {
         flex-direction: column;
         align-items: flex-start;
         gap: 10px;
+        padding: 15px;
       }
       .filter-form > * {
         width: 100%;
@@ -38,6 +57,15 @@
       .filter-form select, 
       .filter-form button {
         width: 100%;
+      }
+      .employee-table th,
+      .employee-table td {
+        padding: 10px 8px;
+        font-size: 0.85em;
+      }
+      .status-select {
+        width: 100px;
+        padding: 6px 8px;
       }
     }
     .filter-form select {
@@ -145,6 +173,7 @@
       border-radius: 4px;
       border: 1px solid #ddd;
       width: 120px;
+      max-width: 100%;
       font-weight: 500;
       cursor: pointer;
       transition: all 0.2s ease;
@@ -158,18 +187,16 @@
     .employee-table-container {
       width: 100%;
       overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      margin: 20px 0;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      border-radius: 4px;
-      background: #fff;
+      margin: 0 -30px;
+      padding: 0 30px;
+      box-sizing: border-box;
     }
     .employee-table {
       width: 100%;
-      min-width: 1000px;
       border-collapse: collapse;
       margin: 0;
-      font-size: 14px;
+      font-size: 0.9em;
+      min-width: 100%;
     }
     .employee-table th {
       text-align: left;
@@ -180,15 +207,22 @@
       white-space: nowrap;
       position: sticky;
       top: 0;
-      z-index: 10;
     }
+    .employee-table th,
     .employee-table td {
       padding: 12px 15px;
-      border-bottom: 1px solid #eee;
-      vertical-align: middle;
+      text-align: left;
+      border-bottom: 1px solid #e0e0e0;
       white-space: nowrap;
     }
-    
+    .employee-table th:first-child,
+    .employee-table td:first-child {
+      padding-left: 30px;
+    }
+    .employee-table th:last-child,
+    .employee-table td:last-child {
+      padding-right: 30px;
+    }
     .employee-table tbody tr:nth-child(even) {
       background-color: #f9f9f9;
     }
@@ -233,8 +267,6 @@
 {% block content %}
 <div id="content-main">
   <div class="monthly-details-container">
-    <h1>{{ title }}</h1>
-    
     <div class="filter-form">
       <form method="get" action="{% url 'admin:monthly_details' %}">
         <label for="month">Month:</label>
