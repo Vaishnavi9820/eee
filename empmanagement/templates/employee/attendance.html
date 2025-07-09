@@ -1,7 +1,223 @@
 {% extends 'base.html' %}
 {% load employee_tags %}
 
+{% block extra_css %}
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
+<style>
+    .fc .fc-daygrid-day.fc-day-today {
+        background-color: #f0fdf4;
+    }
+    .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+        font-weight: bold;
+    }
+    .present {
+        background-color: #dcfce7 !important;
+    }
+    .absent {
+        background-color: #fee2e2 !important;
+    }
+    .holiday {
+        background-color: #fef3c7 !important;
+    }
+    #calendarModal .modal-box {
+        max-width: 900px;
+        width: 95%;
+    }
+    #attendanceCalendar {
+        max-height: 80vh;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
+<!-- Calendar Modal -->
+<div id="calendarModal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg mb-4">Attendance for <span id="modalMonthYear"></span></h3>
+        <div id="attendanceCalendar"></div>
+        <div class="modal-action">
+            <button onclick="document.getElementById('calendarModal').classList.remove('modal-open')" class="btn">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Helper function to get month name from number
+function getMonthName(month) {
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    return months[parseInt(month) - 1] || '';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize FullCalendar when modal is opened
+    document.querySelectorAll('.view-month-details').forEach(button => {
+        button.addEventListener('click', function() {
+            const month = this.getAttribute('data-month');
+            const year = this.getAttribute('data-year');
+            const employeeId = this.getAttribute('data-employee-id');
+            
+            // Set the modal title
+            document.getElementById('modalMonthYear').textContent = `${getMonthName(month)} ${year}`;
+            document.getElementById('calendarModal').classList.add('modal-open');
+            
+            // Initialize or refresh calendar
+            initCalendar(month, year, employeeId);
+        });
+    });
+});
+
+function initCalendar(month, year, employeeId) {
+    const calendarEl = document.getElementById('attendanceCalendar');
+    
+    // Clear any existing calendar content
+    calendarEl.innerHTML = '';
+    
+    // Create new calendar instance
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        initialDate: `${year}-${String(month).padStart(2, '0')}-01`,
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth'
+        },
+        dayCellContent: function(arg) {
+            // Custom day cell content to show just the date
+            return { html: '<div class="fc-daygrid-day-number">' + arg.dayNumberText + '</div>' };
+        },
+        dayCellDidMount: function(arg) {
+            // Add custom classes based on the day
+            const date = arg.date;
+            const day = date.getDate();
+            const currentMonth = date.getMonth() + 1;
+            const currentYear = date.getFullYear();
+            const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            
+            // Skip if not in the target month
+            if (currentMonth != month || currentYear != year) {
+                return;
+            }
+            
+            // Add a loading class initially
+            const dayEl = arg.el;
+            dayEl.classList.add('loading-day');
+            
+            // Fetch attendance data for this month
+            fetch(`/api/attendance/${employeeId}/${year}/${month}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.days) {
+                        const dayData = data.days.find(d => d.date === dateStr);
+                        if (dayData) {
+                            // Remove loading class
+                            dayEl.classList.remove('loading-day');
+                            
+                            // Add appropriate class based on status
+                            if (dayData.status === 'Present') {
+                                dayEl.classList.add('present');
+                            } else if (dayData.status === 'Absent') {
+                                dayEl.classList.add('absent');
+                            } else if (dayData.status === 'Weekend') {
+                                dayEl.classList.add('holiday');
+                            }
+                            
+                            // Add tooltip with status
+                            dayEl.setAttribute('title', `Status: ${dayData.status}`);
+                            
+                            // Add status indicator to the day cell
+                            const statusEl = document.createElement('div');
+                            statusEl.className = 'status-indicator';
+                            dayEl.querySelector('.fc-daygrid-day-frame').appendChild(statusEl);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching attendance data:', error);
+                    dayEl.classList.remove('loading-day');
+                });
+        },
+        dayHeaderClassNames: function(arg) {
+            // Style weekend headers differently
+            if (arg.date.getDay() === 0) { // Sunday
+                return ['sunday-header'];
+            } else if (arg.date.getDay() === 6) { // Saturday
+                return ['saturday-header'];
+            }
+            return [];
+        },
+        height: 'auto',
+        fixedWeekCount: false
+    });
+    
+    // Store calendar instance
+    window.attendanceCalendar = calendar;
+    
+    // Render the calendar
+    calendar.render();
+    
+    // Set the title with month and year
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+                      'August', 'September', 'October', 'November', 'December'];
+    const titleEl = calendarEl.querySelector('.fc-toolbar-title');
+    if (titleEl) {
+        titleEl.textContent = `${monthNames[parseInt(month) - 1]} ${year}`;
+    }
+}
+</script>
+
+<style>
+/* Loading state for days */
+.loading-day {
+    opacity: 0.7;
+    position: relative;
+}
+
+.loading-day::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        45deg,
+        rgba(0, 0, 0, 0.05),
+        rgba(0, 0, 0, 0.05) 5px,
+        rgba(0, 0, 0, 0.1) 5px,
+        rgba(0, 0, 0, 0.1) 10px
+    );
+    pointer-events: none;
+}
+
+/* Status indicator dot */
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin: 2px auto 0;
+}
+
+.present .status-indicator {
+    background-color: #10b981; /* Green */
+}
+
+.absent .status-indicator {
+    background-color: #ef4444; /* Red */
+}
+
+.holiday .status-indicator {
+    background-color: #f59e0b; /* Amber */
+}
+
+/* Weekend header styling */
+.sunday-header {
+    color: #ef4444; /* Red */
+}
+
+.saturday-header {
+    color: #3b82f6; /* Blue */
+}
+</style>
 <div class="container mx-auto px-4 py-8">
     <!-- Header Section -->
     <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-xl p-6 mb-8">
@@ -52,26 +268,26 @@
                     <span class="text-gray-600">Total Days</span>
                     <span class="font-medium">{{ info.total_days }} days</span>
                 </div>
-                <div class="flex justify-between p-3 bg-gray-50 rounded-lg">
+                <!-- <div class="flex justify-between p-3 bg-gray-50 rounded-lg">
                     <span class="text-gray-600">Present Days</span>
                     <span class="font-medium">{{ info.present_days }} days</span>
-                </div>
-                <div class="flex justify-between p-3 bg-gray-50 rounded-lg">
+                </div> -->
+                <!-- <div class="flex justify-between p-3 bg-gray-50 rounded-lg">
                     <span class="text-gray-600">Weekdays Present</span>
                     <span class="font-medium">{{ info.weekdays }} days</span>
-                </div>
-                <div class="flex justify-between p-3 bg-gray-50 rounded-lg">
+                </div> -->
+                <!-- <div class="flex justify-between p-3 bg-gray-50 rounded-lg">
                     <span class="text-gray-600">Sundays</span>
                     <span class="font-medium">{{ info.sundays }} days</span>
-                </div>
+                </div> -->
                 <div class="flex justify-between p-3 bg-red-50 rounded-lg">
                     <span class="text-red-600 font-medium">Leaves Taken</span>
                     <span class="font-bold text-red-600">{{ info.leaves_taken }} days</span>
                 </div>
-                <div class="flex justify-between p-3 bg-gray-50 rounded-lg">
+                <!-- <div class="flex justify-between p-3 bg-gray-50 rounded-lg">
                     <span class="text-gray-600">Total Working Days</span>
                     <span class="font-medium">{{ info.working_days }} days</span>
-                </div>
+                </div> -->
                 <div class="flex justify-between p-3 bg-green-50 rounded-lg">
                     <span class="text-green-600 font-medium">Working Days After Leaves</span>
                     <span class="font-bold text-green-600">{{ info.working_days_after_leaves }} days</span>
@@ -124,18 +340,18 @@
     <!-- Leave Details Section -->
     {% if leave_days %}
     <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-        <div class="flex items-center mb-4">
+        <div class="flex items-center mb-6">
             <div class="p-2 bg-red-100 rounded-full mr-3">
                 <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                 </svg>
             </div>
-            <h2 class="text-xl font-semibold text-gray-800">Leave Details for {{ info.month_name }}</h2>
+            <h2 class="text-2xl font-semibold text-gray-800">Leave Details for {{ info.month_name }}</h2>
         </div>
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
-                    <tr>
+                    <tr class="text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
                     </tr>
@@ -155,11 +371,11 @@
 
     <!-- History Section -->
     <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 class="text-xl font-semibold text-gray-800 mb-4">12-Month History</h2>
-        <div class="overflow-x-auto">
+        <h2 class="text-2xl font-semibold text-gray-800 mb-6">12-Month History</h2>
+        <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
-                    <tr>
+                    <tr class="text-left text-sm font-medium text-gray-500 uppercase tracking-wider">
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Month</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Present Days</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Leaves</th>
@@ -171,7 +387,14 @@
                 <tbody class="bg-white divide-y divide-gray-200">
                     {% for record in salary_history %}
                     <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ record.month }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            <button class="view-month-details text-blue-600 hover:text-blue-800 hover:underline" 
+                                    data-month="{{ record.month|date:'m' }}" 
+                                    data-year="{{ record.month|date:'Y' }}"
+                                    data-employee-id="{{ request.user.employee.id }}">
+                                {{ record.month|date:"F Y" }}
+                            </button>
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ record.present_days }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ record.leaves_taken }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ record.working_days_after_leaves }}</td>

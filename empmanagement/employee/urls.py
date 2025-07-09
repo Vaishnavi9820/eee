@@ -59,6 +59,8 @@ urlpatterns = [
     path('attendance',views.attendance,name="attendance"),
     path('attendance-summary/', views.attendance_summary, name='attendance_summary'),
     # path('attendance', views.attendance_summary, name='attendance'),
+    path('get_working_days/', views.get_working_days_for_month, name='get_working_days'),
+    path('api/attendance/<int:employee_id>/<int:year>/<int:month>/', views.get_attendance_calendar_data, name='get_attendance_calendar_data'),
     path('notice',views.notice,name="notice"),
     path('noticedetail/?P<id>/',views.noticedetail,name="noticedetail"),
     # path('assignwork',views.assignWork,name="assignwork"),
@@ -85,6 +87,8 @@ urlpatterns = [
     path('mark_task_completed/<int:task_id>/', views.mark_task_completed, name='mark_task_completed'),  # New URL pattern
     path('requests/', request_page, name='request_page'),
     path('all-requests/', views.view_all_requests, name='view_all_requests'),  # New URL for viewing all requests
+    path('leave-request-history/', views.leave_request_history, name='leave_request_history'),  # New URL for leave request history
+    path('other-request-history/', views.other_request_history, name='other_request_history'),  # New URL for other request history
     # path('make-request/', make_request_view, name='make_request'),
     # path('check-request-status/', check_request_status, name='check_request_status'),
 

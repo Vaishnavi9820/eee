@@ -293,70 +293,131 @@
                 if (currentHistoryType === 'expenditure') {
                     itemDate = new Date(item.date);
                 } else if (currentHistoryType === 'leave') {
-                    // For leave requests, consider the from_date
                     itemDate = new Date(item.from_date);
                 } else {
                     itemDate = new Date(item.date);
                 }
+                
                 return itemDate >= filterDate;
             });
         }
         
-        // Populate the table with filtered data
+        // Get the table body
         const tbody = document.getElementById('historyData');
         tbody.innerHTML = '';
         
-        filteredData.forEach(item => {
+        if (filteredData.length === 0) {
             const row = document.createElement('tr');
-            
-            // Define status colors
-            const statusColors = {
-                'approved': 'bg-green-100 text-green-800',
-                'pending': 'bg-yellow-100 text-yellow-800',
-                'rejected': 'bg-red-100 text-red-800',
-                'deleted': 'bg-red-100 text-red-800',
-                'paid': 'bg-blue-100 text-blue-800',
-                'unpaid': 'bg-gray-100 text-gray-800',
-                'hold': 'bg-purple-100 text-purple-800'
-            };
-            
-            // Get the appropriate status class or use a default
-            const statusClass = statusColors[item.status.toLowerCase()] || 'bg-gray-100 text-gray-800';
+            row.innerHTML = `
+                <td colspan="5" class="text-center p-6 text-gray-500">
+                    <i class='bx bx-info-circle text-4xl mb-2 text-gray-400'></i>
+                    <p>No data available for the selected period</p>
+                </td>`;
+            tbody.appendChild(row);
+            return;
+        }
+        
+        // Sort data by date (newest first)
+        filteredData.sort((a, b) => {
+            let dateA, dateB;
             
             if (currentHistoryType === 'expenditure') {
-                row.innerHTML = `
-                    <td class="p-2">${item.expenditure_name || item.name || 'N/A'}</td>
-                    <td class="p-2">${item.amount ? '₹' + parseFloat(item.amount).toFixed(2) : 'N/A'}</td>
-                    <td class="p-2">${item.date ? new Date(item.date).toLocaleDateString() : 'N/A'}</td>
-                    <td class="p-2">
-                        <span class="px-2 py-1 rounded-full text-xs ${statusClass}">${item.status || 'N/A'}</span>
-                    </td>
-                `;
+                dateA = new Date(a.date);
+                dateB = new Date(b.date);
             } else if (currentHistoryType === 'leave') {
-                // For leave requests, show: Leave Type, From Date, To Date, Status
-                row.innerHTML = `
-                    <td class="p-2">${item.title || 'N/A'}</td>
-                    <td class="p-2">${item.from_date ? new Date(item.from_date).toLocaleDateString('en-IN') : 'N/A'}</td>
-                    <td class="p-2">${item.to_date ? new Date(item.to_date).toLocaleDateString('en-IN') : 'N/A'}</td>
-                    <td class="p-2">
-                        <span class="px-2 py-1 rounded-full text-xs ${statusClass}">${item.status || 'N/A'}</span>
-                    </td>
-                `;
-            } else if (currentHistoryType === 'other') {
-                // For other requests, show: Request Title, Message, Request Date, Status
-                const messagePreview = item.message ? 
-                    (item.message.length > 50 ? item.message.substring(0, 50) + '...' : item.message) : 
-                    'No message';
-                    
-                row.innerHTML = `
-                    <td class="p-2 font-medium">${item.title || 'N/A'}</td>
-                    <td class="p-2 text-gray-600" title="${item.message || ''}">${messagePreview}</td>
-                    <td class="p-2 whitespace-nowrap">${item.date ? new Date(item.date).toLocaleDateString('en-IN') : 'N/A'}</td>
-                    <td class="p-2">
-                        <span class="px-2 py-1 rounded-full text-xs ${statusClass}">${item.status || 'Pending'}</span>
-                    </td>
+                dateA = new Date(a.from_date);
+                dateB = new Date(b.from_date);
+            } else {
+                dateA = new Date(a.date);
+                dateB = new Date(b.date);
+            }
+            
+            return dateB - dateA;
+        });
+        
+        // Set column headers based on request type
+        const col1 = document.getElementById('col1');
+        const col2 = document.getElementById('col2');
+        const col3 = document.getElementById('col3');
+        const col4 = document.getElementById('col4');
+        
+        if (currentHistoryType === 'expenditure') {
+            col1.textContent = 'Expense Name';
+            col2.textContent = 'Purpose';
+            col3.textContent = 'Amount';
+            col4.textContent = 'Date';
+        } else if (currentHistoryType === 'leave') {
+            col1.textContent = 'Leave Type';
+            col2.textContent = 'From Date';
+            col3.textContent = 'To Date';
+            col4.textContent = 'Duration';
+        } else {
+            col1.textContent = 'Request Title';
+            col2.textContent = 'Description';
+            col3.textContent = 'Date';
+            col4.textContent = 'Status';
+        }
+        
+        // Populate the table with consistent styling
+        filteredData.forEach(item => {
+            const row = document.createElement('tr');
+            row.className = 'border-b border-gray-200 hover:bg-gray-50 transition-colors duration-200';
+            
+            // Status styling
+            let statusClass = 'bg-yellow-100 text-yellow-800';
+            if (item.status === 'Approved') statusClass = 'bg-green-100 text-green-800';
+            if (item.status === 'Rejected') statusClass = 'bg-red-100 text-red-800';
+            if (item.status === 'Paid') statusClass = 'bg-blue-100 text-blue-800';
+            
+            // Common variables
+            let col1Content = 'N/A';
+            let col2Content = 'N/A';
+            let col3Content = 'N/A';
+            let col4Content = 'N/A';
+            
+            // Set content based on request type
+            if (currentHistoryType === 'expenditure') {
+                col1Content = item.expenditure_name || 'N/A';
+                col2Content = item.purpose ? (item.purpose.length > 50 ? item.purpose.substring(0, 50) + '...' : item.purpose) : 'No purpose';
+                col3Content = item.amount ? `₹${parseFloat(item.amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : 'N/A';
+                col4Content = item.date ? new Date(item.date).toLocaleDateString('en-IN') : 'N/A';
+            } else if (currentHistoryType === 'leave') {
+                const fromDate = item.from_date ? new Date(item.from_date) : null;
+                const toDate = item.to_date ? new Date(item.to_date) : null;
+                const days = item.days || (fromDate && toDate ? 
+                    Math.ceil((toDate - fromDate) / (1000 * 60 * 60 * 24)) + 1 : 'N/A');
+                
+                col1Content = item.title || 'N/A';
+                col2Content = fromDate ? fromDate.toLocaleDateString('en-IN') : 'N/A';
+                col3Content = toDate ? toDate.toLocaleDateString('en-IN') : 'N/A';
+                col4Content = `${days} day${days !== 1 ? 's' : ''}`;
+            } else {
+                col1Content = item.title || 'N/A';
+                col2Content = item.message ? (item.message.length > 50 ? item.message.substring(0, 50) + '...' : item.message) : 'No message';
+                col3Content = item.date ? new Date(item.date).toLocaleDateString('en-IN') : 'N/A';
+                col4Content = `
+                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
+                        ${item.status || 'Pending'}
+                    </span>
                 `;
             }
+            
+            // Build the row with consistent styling
+            row.innerHTML = `
+                <td class="p-4 font-medium text-gray-900">${col1Content}</td>
+                <td class="p-4 text-gray-600" title="${currentHistoryType === 'expenditure' ? (item.purpose || '') : (item.message || '')}">
+                    ${col2Content}
+                </td>
+                <td class="p-4 text-gray-600">${col3Content}</td>
+                <td class="p-4">
+                    ${currentHistoryType === 'expenditure' ? 
+                        `<span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
+                            ${item.status || 'Pending'}
+                        </span>` : 
+                        col4Content
+                    }
+                </td>
+            `;
             
             tbody.appendChild(row);
         });
@@ -388,23 +449,35 @@
             } else if (type === 'leave') {
                 data = JSON.parse('{{ leave_data|escapejs }}');
                 // Ensure we have the required fields for leave requests
-                data = data.map(item => ({
-                    ...item,
-                    title: item.title || 'N/A',
-                    from_date: item.from_date,
-                    to_date: item.to_date,
-                    status: item.status || 'Pending'
-                }));
+                data = data.map(item => {
+                    // Convert date strings to Date objects for sorting
+                    const fromDate = item.from_date ? new Date(item.from_date) : null;
+                    const toDate = item.to_date ? new Date(item.to_date) : null;
+                    
+                    return {
+                        ...item,
+                        title: item.title || 'N/A',
+                        from_date: fromDate,
+                        to_date: toDate,
+                        status: item.status || 'Pending',
+                        message: item.message || ''
+                    };
+                });
             } else if (type === 'other') {
                 data = JSON.parse('{{ other_data|escapejs }}');
                 // Ensure we have the required fields for other requests
-                data = data.map(item => ({
-                    ...item,
-                    title: item.title || 'N/A',
-                    message: item.message || '',
-                    date: item.date,
-                    status: item.status || 'Pending'
-                }));
+                data = data.map(item => {
+                    // Convert date string to Date object for sorting
+                    const requestDate = item.date ? new Date(item.date) : null;
+                    
+                    return {
+                        ...item,
+                        title: item.title || 'N/A',
+                        message: item.message || '',
+                        date: requestDate,
+                        status: item.status || 'Pending'
+                    };
+                });
             }
         } catch (e) {
             console.error('Error parsing history data:', e);

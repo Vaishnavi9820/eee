@@ -71,6 +71,16 @@ def signup(request):
             
     return render(request,"employee/signup.html")
 
+def get_working_saturdays(year, month):
+    """Get the first and third Saturdays of the month"""
+    all_saturdays = [
+        date(year, month, day)
+        for day in range(1, calendar.monthrange(year, month)[1] + 1)
+        if date(year, month, day).weekday() == 5  # 5 = Saturday
+    ]
+    # Return first and third Saturdays (0 and 2 index)
+    return [sat for i, sat in enumerate(all_saturdays) if i in [0, 2]]
+
 def calculate_monthly_salary(employee, month=None, year=None):
     if month is None:
         month = datetime.now().month
@@ -79,6 +89,7 @@ def calculate_monthly_salary(employee, month=None, year=None):
     
     # Get the number of days in the month
     _, num_days = calendar.monthrange(year, month)
+    today = date.today()
     
     # Get all Sundays in the month
     all_sundays = [
@@ -88,8 +99,10 @@ def calculate_monthly_salary(employee, month=None, year=None):
     ]
     
     # Get past Sundays (up to today)
-    today = date.today()
     past_sundays = [sunday for sunday in all_sundays if sunday <= today]
+    
+    # Get working Saturdays (1st and 3rd) up to today
+    working_saturdays = [sat for sat in get_working_saturdays(year, month) if sat <= today]
     
     # Get all attendance records for the month
     attendance_records = Attendance.objects.filter(
@@ -104,8 +117,8 @@ def calculate_monthly_salary(employee, month=None, year=None):
     # Count present days (weekdays)
     weekdays_present = len(distinct_working_days)
     
-    # Calculate total working days including Sundays
-    total_working_days = weekdays_present + len(past_sundays)
+    # Calculate total working days including Sundays and working Saturdays
+    total_working_days = weekdays_present + len(past_sundays) + len(working_saturdays)
     
     # Count approved leaves in this month
     leaves_taken = 0
@@ -146,12 +159,13 @@ def calculate_monthly_salary(employee, month=None, year=None):
     calculated_salary = daily_rate * working_days_after_leaves  # Use working days after leaves
     
     return {
-        'total_days': num_days,  # This now includes Sundays
-        'present_days': total_working_days,  # Updated to include Sundays
-        'weekdays_present': weekdays_present,  # Added for dashboard display
-        'sundays': len(past_sundays),  # Added for dashboard display
-        'leaves_taken': leaves_taken,  # Added for leave tracking
-        'working_days_after_leaves': working_days_after_leaves,  # Added for leave tracking
+        'total_days': num_days,  # Total days in the month
+        'present_days': total_working_days,  # Includes weekdays, Sundays, and working Saturdays
+        'weekdays_present': weekdays_present,  # Only weekdays present
+        'sundays': len(past_sundays),  # All Sundays in the month up to today
+        'working_saturdays': len(working_saturdays),  # 1st and 3rd Saturdays up to today
+        'leaves_taken': leaves_taken,  # Total leaves taken
+        'working_days_after_leaves': working_days_after_leaves,  # Working days after leaves
         'absent_days': num_days - total_working_days,
         'daily_rate': daily_rate,
         'calculated_salary': calculated_salary,
@@ -591,17 +605,30 @@ def make_request(request):
         } for e in expenditure_requests
     ], cls=DjangoJSONEncoder)
     
-    # Serialize leave requests
-    leave_data = json.dumps(
-        list(leave_requests.values('title', 'from_date', 'to_date', 'message', 'status')),
-        cls=DjangoJSONEncoder
-    )
+    # Serialize leave requests with consistent field names
+    leave_data = json.dumps([
+        {
+            'id': str(leave.id),
+            'title': leave.title,
+            'from_date': leave.from_date.isoformat() if leave.from_date else None,
+            'to_date': leave.to_date.isoformat() if leave.to_date else None,
+            'status': leave.status,
+            'message': getattr(leave, 'message', '')
+        }
+        for leave in leave_requests
+    ], cls=DjangoJSONEncoder)
     
-    # Serialize other requests
-    other_data = json.dumps(
-        list(other_requests.values('title', 'date', 'message', 'status')),
-        cls=DjangoJSONEncoder
-    )
+    # Serialize other requests with consistent field names
+    other_data = json.dumps([
+        {
+            'id': str(other.id),
+            'title': other.title,
+            'date': other.date.isoformat() if other.date else None,
+            'status': other.status,
+            'message': other.message
+        }
+        for other in other_requests
+    ], cls=DjangoJSONEncoder)
     
     # Calculate statistics
     # Expenditure Requests
@@ -1055,8 +1082,88 @@ def request_page(request):
     }
     return render(request, "your_template.html", context)
 
-from django.shortcuts import render
-from .models import ExpenditureRequest, LeaveRequest, OtherRequest
+from django.shortcuts import render, redirect
+from .models import ExpenditureRequest, LeaveRequest, OtherRequest, Employee
+from django.http import JsonResponse, HttpResponse
+from django.views.decorators.http import require_GET
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db.models import Q
+from django.views.decorators.csrf import csrf_exempt
+from datetime import datetime, timedelta
+import calendar
+
+@require_GET
+def get_attendance_calendar_data(request, employee_id, year, month):
+    try:
+        employee = Employee.objects.get(id=employee_id)
+        year = int(year)
+        month = int(month)
+        
+        # Get the first and last day of the month
+        _, last_day = calendar.monthrange(year, month)
+        start_date = date(year, month, 1)
+        end_date = date(year, month, last_day)
+        
+        # Get all attendance records for the employee in the given month
+        attendance_records = Attendance.objects.filter(
+            employee=employee,
+            date__year=year,
+            date__month=month
+        ).values('date', 'status')
+        
+        # Create a dictionary of date: status for quick lookup
+        attendance_dict = {record['date']: record['status'] for record in attendance_records}
+        
+        # Generate data for each day of the month
+        days_data = []
+        current_date = start_date
+        
+        while current_date <= end_date:
+            # Check if it's a weekend (5=Saturday, 6=Sunday)
+            is_weekend = current_date.weekday() >= 5
+            
+            # Check if it's a working Saturday (1st or 3rd Saturday of the month)
+            is_working_saturday = False
+            if current_date.weekday() == 5:  # Saturday
+                # Get the week number of the month (1st, 2nd, 3rd, etc.)
+                week_number = (current_date.day - 1) // 7 + 1
+                if week_number in [1, 3]:  # 1st and 3rd Saturdays are working
+                    is_working_saturday = True
+            
+            # Determine status
+            status = None
+            if str(current_date) in attendance_dict:
+                status = attendance_dict[str(current_date)]
+            elif is_weekend and not is_working_saturday:
+                status = 'Weekend'
+            else:
+                status = 'Absent'
+            
+            days_data.append({
+                'date': current_date.isoformat(),
+                'status': status,
+                'is_weekend': is_weekend,
+                'is_working_saturday': is_working_saturday
+            })
+            
+            current_date += timedelta(days=1)
+        
+        return JsonResponse({
+            'success': True,
+            'days': days_data
+        })
+        
+    except Employee.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Employee not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
 
 def make_request_view(request):
     # Get the logged-in employee
@@ -1080,6 +1187,59 @@ def make_request_view(request):
     return render(request, "employee/make_request.html", context)
 
 # Add a new view to display all request data
+@login_required
+@login_required
+def leave_request_history(request):
+    """View to display only leave request history for the current user"""
+    try:
+        employee = request.user.employee
+    except Employee.DoesNotExist:
+        messages.error(request, "Your user account is not linked to an employee record. Please contact an administrator.")
+        return redirect('dashboard')
+    
+    # Get all leave requests for the current employee, ordered by most recent first
+    leave_requests = LeaveRequest.objects.filter(employee=employee).order_by('-from_date')
+    
+    # Calculate statistics
+    total_leave_requests = leave_requests.count()
+    approved_leaves = leave_requests.filter(status='Approved').count()
+    rejected_leaves = leave_requests.filter(status='Rejected').count()
+    
+    context = {
+        'leave_requests': leave_requests,
+        'total_leave_requests': total_leave_requests,
+        'approved_leaves': approved_leaves,
+        'rejected_leaves': rejected_leaves,
+    }
+    
+    return render(request, 'employee/leave_request_history.html', context)
+
+@login_required
+def other_request_history(request):
+    """View to display only other request history for the current user"""
+    try:
+        employee = request.user.employee
+    except Employee.DoesNotExist:
+        messages.error(request, "Your user account is not linked to an employee record. Please contact an administrator.")
+        return redirect('dashboard')
+    
+    # Get all other requests for the current employee, ordered by most recent first
+    other_requests = OtherRequest.objects.filter(employee=employee).order_by('-date')
+    
+    # Calculate statistics
+    total_other_requests = other_requests.count()
+    approved_requests = other_requests.filter(status='Approved').count()
+    rejected_requests = other_requests.filter(status='Rejected').count()
+    
+    context = {
+        'other_requests': other_requests,
+        'total_other_requests': total_other_requests,
+        'approved_requests': approved_requests,
+        'rejected_requests': rejected_requests,
+    }
+    
+    return render(request, 'employee/other_request_history.html', context)
+
 @login_required
 def view_all_requests(request):
     # Get the current user

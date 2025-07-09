@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .page-header {
+        background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .request-table {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+    }
+    
+    .request-table thead {
+        background-color: #f8f9fa;
+    }
+    
+    .request-table th,
+    .request-table td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .request-table tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .status {
+        padding: 5px 10px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: capitalize;
+    }
+    
+    .status-pending {
+        background-color: #ffefc5;
+        color: #e6a700;
+    }
+    
+    .status-approved {
+        background-color: #d1f7c4;
+        color: #2e7d32;
+    }
+    
+    .status-rejected {
+        background-color: #ffd3d3;
+        color: #c62828;
+    }
+    
+    .no-data {
+        text-align: center;
+        padding: 20px;
+        color: #888;
+        background-color: #f9f9f9;
+        border-radius: 8px;
+        margin: 20px 0;
+    }
+    
+    .back-button {
+        display: inline-block;
+        padding: 8px 16px;
+        background-color: #6c757d;
+        color: white;
+        border-radius: 4px;
+        text-decoration: none;
+        margin-bottom: 20px;
+    }
+    
+    .back-button:hover {
+        background-color: #5a6268;
+        color: white;
+    }
+    
+    .section-header {
+        background: linear-gradient(135deg, #2575fc 0%, #6a11cb 100%);
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        margin: 20px 0 15px 0;
+    }
+    
+    .message-preview {
+        max-width: 300px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .view-more {
+        color: #2575fc;
+        cursor: pointer;
+        text-decoration: underline;
+    }
+</style>
+
+<div class="container">
+    <a href="{% url 'dashboard' %}" class="back-button">← Back to Dashboard</a>
+    
+    <div class="page-header">
+        <h2>Other Requests History</h2>
+        <div>
+            <span>Dashboard > Other Requests</span>
+        </div>
+    </div>
+
+    <!-- Other Requests Section -->
+    <div class="request-section">
+        <div class="section-header">
+            <h3>My Other Requests</h3>
+        </div>
+        
+        {% if other_requests %}
+        <table class="request-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Date</th>
+                    <th>Message</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for request in other_requests %}
+                <tr>
+                    <td>{{ request.title }}</td>
+                    <td>{{ request.date|date:"M d, Y" }}</td>
+                    <td class="message-preview">
+                        <span class="short-message">
+                            {{ request.message|truncatechars:50 }}
+                        </span>
+                        {% if request.message|length > 50 %}
+                            <span class="view-more" onclick="toggleMessage(this)">View More</span>
+                            <span class="full-message" style="display: none;">
+                                {{ request.message }}
+                                <span class="view-more" onclick="toggleMessage(this)">Show Less</span>
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="status status-{{ request.status|lower }}">
+                            {{ request.status }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'requestdetails' request.id %}" class="text-blue-600 hover:text-blue-800">
+                            <i class='bx bx-detail'></i> Details
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="no-data">No other requests found.</div>
+        {% endif %}
+    </div>
+    
+    <!-- Request Statistics -->
+    <div class="section-header">
+        <h3>Request Statistics</h3>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
+        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h4>Total Requests</h4>
+            <div style="font-size: 24px; font-weight: bold; color: #2575fc;">{{ total_other_requests }}</div>
+        </div>
+        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h4>Approved</h4>
+            <div style="font-size: 24px; font-weight: bold; color: #2e7d32;">{{ approved_requests }}</div>
+        </div>
+        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h4>Pending</h4>
+            <div style="font-size: 24px; font-weight: bold; color: #e6a700;">
+                {{ other_requests|length|subtract:approved_requests|subtract:rejected_requests }}
+            </div>
+        </div>
+        <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h4>Rejected</h4>
+            <div style="font-size: 24px; font-weight: bold; color: #c62828;">{{ rejected_requests }}</div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleMessage(element) {
+    const row = element.closest('tr');
+    const shortMessage = row.querySelector('.short-message');
+    const fullMessage = row.querySelector('.full-message');
+    
+    if (shortMessage.style.display === 'none') {
+        shortMessage.style.display = 'inline';
+        fullMessage.style.display = 'none';
+    } else {
+        shortMessage.style.display = 'none';
+        fullMessage.style.display = 'inline';
+    }
+}
+</script>
+{% endblock %}
