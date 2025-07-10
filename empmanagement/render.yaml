@@ -4,34 +4,22 @@ services:
     env: python
     buildCommand: |
       pip install --upgrade pip &&
-      pip install -r requirements.txt
+      pip install -r requirements.txt &&
+      python manage.py collectstatic --noinput
     startCommand: |
-      bash -c "
-        echo 'Waiting for database to be ready...';
-        until python manage.py migrate --noinput; do
-          echo 'Waiting for DB...';
-          sleep 5;
-        done;
-        echo 'Collecting static files...';
-        python manage.py collectstatic --noinput;
-        echo 'Starting server...';
-        gunicorn --config gunicorn_config.py empmanagement.wsgi:application --bind 0.0.0.0:$PORT
-      "
+      python manage.py migrate --noinput &&
+      gunicorn empmanagement.wsgi:application --config gunicorn_prod.py
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.0
       - key: DEBUG
         value: "False"
       - key: DISABLE_COLLECTSTATIC
-        value: "0"
+        value: "1"
       - key: ALLOWED_HOSTS
         value: "*"
       - key: SECRET_KEY
         generateValue: true
-      - key: WEB_CONCURRENCY
-        value: "1"  # Reduced for free tier
-      - key: GUNICORN_CMD_ARGS
-        value: "--workers=1 --timeout=120"
       - key: DATABASE_URL
         fromDatabase:
           name: employee-management-db
@@ -39,5 +27,3 @@ services:
       - key: PYTHONUNBUFFERED
         value: "1"
     plan: free
-    buildCommandPriority: 2
-    autoDeploy: true

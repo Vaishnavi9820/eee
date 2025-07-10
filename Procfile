@@ -1,1 +1,1 @@
-web: gunicorn --config gunicorn_config.py empmanagement.wsgi:application
+web: gunicorn empmanagement.wsgi:application --config gunicorn_prod.py
