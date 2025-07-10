@@ -571,11 +571,6 @@ def handle_other_request(request, pk):
 def make_request(request):
     template_name = 'employee/make_request.html'
     
-    # Initialize forms at the beginning
-    expenditure_form = ExpenditureForm()
-    leave_form = LeaveForm()
-    other_form = OtherRequestForm()
-    
     # Check if the user has an associated employee record
     try:
         employee = request.user.employee
@@ -583,205 +578,110 @@ def make_request(request):
         messages.error(request, "Your user account is not linked to an employee record. Please contact an administrator.")
         return redirect('dashboard')
 
-    # Get all request types
-    request_types = RequestType.objects.all()
+    # Initialize leave form
+    leave_form = LeaveForm()
     
-    # Get user's request history
-    expenditure_requests = ExpenditureRequest.objects.filter(employee=employee).order_by('-date')
+    # Handle form submission
+    if request.method == 'POST' and 'leave_submit' in request.POST:
+        leave_form = LeaveForm(request.POST)
+        if leave_form.is_valid():
+            leave = leave_form.save(commit=False)
+            leave.employee = employee
+            
+            # Calculate the number of days (excluding Sundays)
+            from_date = leave.from_date
+            to_date = leave.to_date
+            days = 0
+            current_date = from_date
+            
+            while current_date <= to_date:
+                if current_date.weekday() != 6:  # 6 is Sunday
+                    days += 1
+                current_date += timedelta(days=1)
+            
+            # Set the days field
+            leave.days = days
+            leave.save()
+            
+            # Create notification for the admin
+            Notification.objects.create(
+                employee=employee,
+                message=f"New leave request submitted: {leave.title} from {leave.from_date} to {leave.to_date} ({days} days)"
+            )
+            
+            messages.success(request, f"Leave request for {days} days submitted successfully!")
+            return redirect('make_request')
+        else:
+            # If form is invalid, show error messages
+            for field, errors in leave_form.errors.items():
+                for error in errors:
+                    messages.error(request, f"Error in {field}: {error}")
+    
+    # Get user's leave and other requests history
     leave_requests = LeaveRequest.objects.filter(employee=employee).order_by('-from_date')
     other_requests = OtherRequest.objects.filter(employee=employee).order_by('-date')
+    
+    # Calculate leave statistics
+    total_leave_requests = leave_requests.count()
+    approved_leaves = leave_requests.filter(status='Approved').count()
+    pending_leaves = leave_requests.filter(status='Pending').count()
+    rejected_leaves = leave_requests.filter(status='Rejected').count()
+    
+    # Calculate approved leaves percentage (avoid division by zero)
+    approved_leaves_percentage = 0
+    if total_leave_requests > 0:
+        approved_leaves_percentage = round((approved_leaves / total_leave_requests) * 100)
     
     # Prepare JSON data for JavaScript
     import json
     from django.core.serializers.json import DjangoJSONEncoder
-    
-    # Serialize expenditure requests
-    expenditure_data = json.dumps([
-        {
-            'name': e.expenditure_name,
-            'amount': e.amount,
-            'date': e.date,
-            'status': e.status
-        } for e in expenditure_requests
-    ], cls=DjangoJSONEncoder)
     
     # Serialize leave requests with consistent field names
     leave_data = json.dumps([
         {
             'id': str(leave.id),
             'title': leave.title,
-            'from_date': leave.from_date.isoformat() if leave.from_date else None,
-            'to_date': leave.to_date.isoformat() if leave.to_date else None,
+            'leave_type': leave.leave_type,
+            'from_date': leave.from_date.isoformat(),
+            'to_date': leave.to_date.isoformat(),
             'status': leave.status,
-            'message': getattr(leave, 'message', '')
+            'message': getattr(leave, 'message', ''),
+            'type': 'leave'
         }
         for leave in leave_requests
     ], cls=DjangoJSONEncoder)
     
-    # Serialize other requests with consistent field names
+    # Serialize other requests
     other_data = json.dumps([
         {
-            'id': str(other.id),
-            'title': other.title,
-            'date': other.date.isoformat() if other.date else None,
-            'status': other.status,
-            'message': other.message
+            'id': str(req.id),
+            'title': req.title,
+            'message': req.message,
+            'date': req.date.isoformat(),
+            'status': req.status,
+            'type': 'other'
         }
-        for other in other_requests
+        for req in other_requests
     ], cls=DjangoJSONEncoder)
     
-    # Calculate statistics
-    # Expenditure Requests
-    total_expenditure_count = ExpenditureRequest.objects.filter(employee=employee).count()
-    approved_expenditures = ExpenditureRequest.objects.filter(employee=employee, status='Approved').count()
-    pending_expenditures = ExpenditureRequest.objects.filter(employee=employee, status='Pending').count()
-    rejected_expenditures = ExpenditureRequest.objects.filter(employee=employee, status='Rejected').count()
-    paid_expenditures = ExpenditureRequest.objects.filter(employee=employee, status='Paid').count()
-
-    # Leave Requests
-    total_leaves = LeaveRequest.objects.filter(employee=employee).count()
-    approved_leaves = LeaveRequest.objects.filter(employee=employee, status='Approved').count()
-    pending_leaves = LeaveRequest.objects.filter(employee=employee, status='Pending').count()
-    rejected_leaves = LeaveRequest.objects.filter(employee=employee, status='Rejected').count()
-    hold_leaves = LeaveRequest.objects.filter(employee=employee, status='Hold').count()
-
-    # Other Requests
-    total_other_requests = OtherRequest.objects.filter(employee=employee).count()
-    approved_other_requests = OtherRequest.objects.filter(employee=employee, status='Approved').count()
-    pending_other_requests = OtherRequest.objects.filter(employee=employee, status='Pending').count()
-    rejected_other_requests = OtherRequest.objects.filter(employee=employee, status='Rejected').count()
-    hold_other_requests = OtherRequest.objects.filter(employee=employee, status='Hold').count()
-
-    # Update context with all data
+    # Prepare context for the template
     context = {
-        'request_types': request_types,
-        'expenditure_form': expenditure_form,
         'leave_form': leave_form,
-        'other_form': other_form,
-        'expenditure_data': expenditure_data,
+        'leave_requests': leave_requests,
         'leave_data': leave_data,
         'other_data': other_data,
-        
-        # Expenditure stats
-        'total_expenditure_count': total_expenditure_count,
-        'approved_expenditures': approved_expenditures,
-        'pending_expenditures': pending_expenditures,
-        'rejected_expenditures': rejected_expenditures,
-        'paid_expenditures': paid_expenditures,
-        
-        # Leave stats
-        'total_leaves': total_leaves,
+        'total_leave_requests': total_leave_requests,
         'approved_leaves': approved_leaves,
         'pending_leaves': pending_leaves,
         'rejected_leaves': rejected_leaves,
-        'hold_leaves': hold_leaves,
-        
-        # Other requests stats
-        'total_other_requests': total_other_requests,
-        'approved_other_requests': approved_other_requests,
-        'pending_other_requests': pending_other_requests,
-        'rejected_other_requests': rejected_other_requests,
-        'hold_other_requests': hold_other_requests,
+        'approved_leaves_percentage': approved_leaves_percentage,
+        'total_other_requests': other_requests.count(),
+        'approved_other_requests': other_requests.filter(status='Approved').count(),
+        'pending_other_requests': other_requests.filter(status='Pending').count(),
+        'rejected_other_requests': other_requests.filter(status='Rejected').count(),
     }
-
-    if request.method == 'POST':
-        request_type = request.POST.get('form_type')
-        
-        if request_type == 'expenditure':
-            expenditure_form = ExpenditureForm(request.POST)
-            if expenditure_form.is_valid():
-                expenditure = expenditure_form.save(commit=False)
-                expenditure.employee = employee
-                expenditure.save()
-                
-                # Create notification for the admin
-                Notification.objects.create(
-                    employee=employee,
-                    message=f"New expenditure request submitted: {expenditure.expenditure_name} (Rs. {expenditure.amount})"
-                )
-                
-                messages.success(request, "Expenditure request submitted successfully!")
-                return redirect('make_request')
-            else:
-                messages.error(request, "Please correct the errors in the form.")
-                
-        elif request_type == 'leave':
-            leave_form = LeaveForm(request.POST)
-            if leave_form.is_valid():
-                leave = leave_form.save(commit=False)
-                leave.employee = employee
-                
-                # Calculate the number of days (excluding Sundays)
-                from_date = leave.from_date
-                to_date = leave.to_date
-                days = 0
-                current_date = from_date
-                
-                while current_date <= to_date:
-                    if current_date.weekday() != 6:  # 6 is Sunday
-                        days += 1
-                    current_date += timedelta(days=1)
-                
-                # Set the days field
-                leave.days = days
-                
-                leave.save()
-                
-                # Create notification for the admin
-                Notification.objects.create(
-                    employee=employee,
-                    message=f"New leave request submitted: {leave.title} from {leave.from_date} to {leave.to_date} ({days} days)"
-                )
-                
-                messages.success(request, f"Leave request for {days} days submitted successfully!")
-                return redirect('make_request')
-            else:
-                messages.error(request, "Please correct the errors in the form.")
-                
-        elif request_type == 'other':
-            other_form = OtherRequestForm(request.POST)
-            if other_form.is_valid():
-                other = other_form.save(commit=False)
-                other.employee = employee
-                other.save()
-                
-                # Create notification for the admin
-                Notification.objects.create(
-                    employee=employee,
-                    message=f"New request submitted: {other.title}"
-                )
-                
-                messages.success(request, "Request submitted successfully!")
-                return redirect('make_request')
-            else:
-                messages.error(request, "Please correct the errors in the form.")
-    
-    # Add all data to context
-    context.update({
-        'expenditure_requests': expenditure_requests,
-        'leave_requests': leave_requests,
-        'other_requests': other_requests,
-    })
     
     return render(request, template_name, context)
-
-from .forms import TaskAssignmentForm
-@login_required
-def assign_task(request):
-    if request.user.is_staff:  # Only admins can assign tasks
-        if request.method == "POST":
-            form = TaskAssignmentForm(request.POST)
-            if form.is_valid():
-                form.save()  # Save the task to the database
-                return redirect('task_assigned')  # Redirect to a confirmation page or another view
-        else:
-            form = TaskAssignmentForm()
-        return render(request, 'employee/assign_task.html', {'form': form})
-    else:
-        return redirect('home')  # Redirect non-admin users to home
-    
-from .models import Task
-from employee.models import Task
 from datetime import datetime, timedelta
 
 def my_work(request):
