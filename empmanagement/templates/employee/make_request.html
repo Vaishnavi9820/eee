@@ -100,12 +100,22 @@
 
     <!-- Button Group for Requests -->
     <div id="requestButtons" class="text-center mb-4">
+        <button id="expenditureBtn" class="request-btn" onclick="showForm('expenditure', this)">Expenditure Request</button>
         <button id="leaveBtn" class="request-btn" onclick="showForm('leave', this)">Leave Request</button>
         <button id="otherBtn" class="request-btn" onclick="showForm('other', this)">Other Request</button>
     </div>
 
     <!-- Request Forms -->
     <div id="formsContainer">
+        <form id="expenditure" method="post" class="request-form hidden">
+            {% csrf_token %}
+            <div class="mb-3">
+                {{ expenditure_form.as_p }}
+            </div>
+            <input type="hidden" name="form_type" value="expenditure">
+            <button type="submit" class="btn btn-success w-100">Submit</button>
+        </form>
+
         <form id="leave" method="post" class="request-form hidden">
             {% csrf_token %}
             <input type="hidden" name="form_type" value="leave">
@@ -117,68 +127,70 @@
                 <label for="{{ leave_form.from_date.id_for_label }}">From Date</label>
                 {{ leave_form.from_date }}
             </div>
+            <div class="form-group mb-3">
+                <label for="{{ leave_form.to_date.id_for_label }}">To Date</label>
+                {{ leave_form.to_date }}
+            </div>
+            <div class="form-group mb-3">
+                <label for="{{ leave_form.message.id_for_label }}">Message</label>
+                {{ leave_form.message }}
+            </div>
+            <div class="form-group mb-3">
+                <label>Number of Days (excluding Sundays)</label>
+                <input type="text" id="leave_days" class="form-control" readonly>
+            </div>
             <button type="submit" class="btn btn-success w-100">Submit Leave Request</button>
         </form>
+
+        <script>
+            // Add this to your existing JavaScript
+            document.addEventListener('DOMContentLoaded', function() {
+                const fromDateInput = document.querySelector('#{{ leave_form.from_date.id_for_label }}');
+                const toDateInput = document.querySelector('#{{ leave_form.to_date.id_for_label }}');
+                const daysInput = document.querySelector('#leave_days');
+
+                function calculateDays() {
+                    const fromDate = new Date(fromDateInput.value);
+                    const toDate = new Date(toDateInput.value);
+                    
+                    if (fromDate && toDate && !isNaN(fromDate) && !isNaN(toDate)) {
+                        let days = 0;
+                        let currentDate = new Date(fromDate);
+                        
+                        while (currentDate <= toDate) {
+                            // Don't count Sundays (0 is Sunday in JavaScript)
+                            if (currentDate.getDay() !== 0) {
+                                days++;
+                            }
+                            currentDate.setDate(currentDate.getDate() + 1);
+                        }
+                        
+                        daysInput.value = days;
+                    } else {
+                        daysInput.value = '';
+                    }
+                }
+
+                fromDateInput.addEventListener('change', calculateDays);
+                toDateInput.addEventListener('change', calculateDays);
+            });
+        </script>
 
         <form id="other" method="post" class="request-form hidden">
             {% csrf_token %}
             <input type="hidden" name="form_type" value="other">
-            <div class="mb-3">
-                <label for="id_title">Title:</label>
-                <input type="text" name="title" id="id_title" class="form-control" required>
-            </div>
-            <div class="mb-3">
-                <label for="id_message">Message:</label>
-                <textarea name="message" id="id_message" class="form-control" rows="3" required></textarea>
-            </div>
-            <div class="mb-3">
-                <label for="id_date">Date:</label>
-                <input type="date" name="date" id="id_date" class="form-control" required>
-            </div>
-            <button type="submit" class="btn btn-success w-100">Submit Other Request</button>
+            {{ other_form.as_p }}
+            <button type="submit">Submit</button>
         </form>
     </div>
-
-    <script>
-        // Add this to your existing JavaScript
-        document.addEventListener('DOMContentLoaded', function() {
-            const fromDateInput = document.querySelector('#{{ leave_form.from_date.id_for_label }}');
-            const toDateInput = document.querySelector('#{{ leave_form.to_date.id_for_label }}');
-            const daysInput = document.querySelector('#leave_days');
-
-            function calculateDays() {
-                const fromDate = new Date(fromDateInput.value);
-                const toDate = new Date(toDateInput.value);
-                
-                if (fromDate && toDate && !isNaN(fromDate) && !isNaN(toDate)) {
-                    let days = 0;
-                    let currentDate = new Date(fromDate);
-                    
-                    while (currentDate <= toDate) {
-                        // Don't count Sundays (0 is Sunday in JavaScript)
-                        if (currentDate.getDay() !== 0) {
-                            days++;
-                        }
-                        currentDate.setDate(currentDate.getDate() + 1);
-                    }
-                    
-                    daysInput.value = days;
-                } else {
-                    daysInput.value = '';
-                }
-            }
-
-            fromDateInput.addEventListener('change', calculateDays);
-            toDateInput.addEventListener('change', calculateDays);
-        });
-    </script>
 
     <!-- History Section Button -->
     <div class="text-center mt-5">
         <button id="historyBtn" class="absolute border-2 p-2 bg-gray-500 right-0 top-0">View Request History</button>
         <div id="historyOptions" class="hidden absolute bg-white right-2 mt-2 top-10 w-40 flex flex-col">
-            <button class="bg-white text-black hover:bg-gray-100 p-2 text-left" onclick="showHistory('leave')">Leave Requests</button>
-            <button class="bg-white text-black hover:bg-gray-100 p-2 text-left" onclick="showHistory('other')">Other Requests</button>
+            <button class="bg-white text-black" onclick="showHistory('expenditure')">Expenditure</button>
+            <button class="bg-white text-black" onclick="showHistory('leave')">Leave</button>
+            <button class="bg-white text-black" onclick="showHistory('other')">Other</button>
         </div>
     </div>
 
@@ -257,115 +269,9 @@
         displayFilteredHistory();
     }
     
-    // Request data will be loaded from the JSON script tags
-    let requestData = {
-        leave: [],
-        other: []
-    };
-    
-    // Store the current history type
-    // Function to parse date strings into Date objects
-    function parseDate(dateStr) {
-        if (!dateStr) return null;
-        const date = new Date(dateStr);
-        return isNaN(date.getTime()) ? null : date;
-    }
-    
-    // Function to get status badge class
-    function getStatusClass(status) {
-        if (!status) return 'bg-secondary';
-        
-        switch(status.toLowerCase()) {
-            case 'approved':
-                return 'bg-success';
-            case 'rejected':
-            case 'deleted':
-                return 'bg-danger';
-            case 'pending':
-                return 'bg-warning';
-            case 'hold':
-                return 'bg-info';
-            default:
-                return 'bg-secondary';
-        }
-    }
-    
-    // Parse the JSON data when the page loads
-    document.addEventListener('DOMContentLoaded', function() {
-        try {
-            // Parse leave data
-            const leaveDataEl = document.getElementById('leave-data');
-            if (leaveDataEl && leaveDataEl.textContent) {
-                requestData.leave = JSON.parse(leaveDataEl.textContent).map(item => ({
-                    ...item,
-                    from_date: parseDate(item.from_date),
-                    to_date: parseDate(item.to_date),
-                    type: 'leave'
-                }));
-            }
-            
-            // Parse other requests data
-            const otherDataEl = document.getElementById('other-data');
-            if (otherDataEl && otherDataEl.textContent) {
-                requestData.other = JSON.parse(otherDataEl.textContent).map(item => ({
-                    ...item,
-                    date: parseDate(item.date),
-                    type: 'other'
-                }));
-            }
-            
-            console.log('Request data loaded:', requestData);
-            // Initial display of leave history
-            showHistory('leave');
-        } catch (error) {
-            console.error('Error parsing request data:', error);
-        }
-        
-        // Set up date change listeners for leave days calculation
-        const fromDateInput = document.querySelector('#id_from_date');
-        const toDateInput = document.querySelector('#id_to_date');
-        const daysInput = document.querySelector('#leave_days');
-
-        function updateLeaveDays() {
-            if (!fromDateInput.value || !toDateInput.value) {
-                daysInput.value = '';
-                return;
-            }
-            
-            const fromDate = new Date(fromDateInput.value);
-            const toDate = new Date(toDateInput.value);
-            
-            if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
-                daysInput.value = '';
-                return;
-            }
-            
-            // Calculate working days (excluding Sundays)
-            let days = 0;
-            const currentDate = new Date(fromDate);
-            
-            while (currentDate <= toDate) {
-                if (currentDate.getDay() !== 0) { // Skip Sunday (0 is Sunday)
-                    days++;
-                }
-                currentDate.setDate(currentDate.getDate() + 1);
-            }
-            
-            daysInput.value = days || '';
-        }
-
-        if (fromDateInput && toDateInput && daysInput) {
-            fromDateInput.addEventListener('change', updateLeaveDays);
-            toDateInput.addEventListener('change', updateLeaveDays);
-        }
-    });
-
     // Filter data based on date
     function displayFilteredHistory() {
-        if (!currentHistoryData || !currentHistoryData.length) {
-            console.log('No history data to display');
-            return;
-        }
+        if (!currentHistoryData.length) return;
         
         const today = new Date();
         let filteredData = [];
@@ -384,8 +290,12 @@
             // Filter the data based on date
             filteredData = currentHistoryData.filter(item => {
                 let itemDate;
-                if (currentHistoryType === 'leave') {
+                if (currentHistoryType === 'expenditure') {
+                    itemDate = new Date(item.date);
+                } else if (currentHistoryType === 'leave') {
                     itemDate = new Date(item.from_date);
+                } else {
+                    itemDate = new Date(item.date);
                 }
                 
                 return itemDate >= filterDate;
@@ -407,9 +317,15 @@
         filteredData.sort((a, b) => {
             let dateA, dateB;
             
-            if (currentHistoryType === 'leave') {
+            if (currentHistoryType === 'expenditure') {
+                dateA = new Date(a.date);
+                dateB = new Date(b.date);
+            } else if (currentHistoryType === 'leave') {
                 dateA = new Date(a.from_date);
                 dateB = new Date(b.from_date);
+            } else {
+                dateA = new Date(a.date);
+                dateB = new Date(b.date);
             }
             
             return dateB - dateA;
@@ -425,58 +341,34 @@
                 'pending': 'bg-yellow-100 text-yellow-800',
                 'rejected': 'bg-red-100 text-red-800',
                 'deleted': 'bg-red-100 text-red-800',
+                'paid': 'bg-blue-100 text-blue-800',
+                'unpaid': 'bg-gray-100 text-gray-800',
                 'hold': 'bg-purple-100 text-purple-800'
             };
             
             // Get the appropriate status class or use a default
             const statusClass = statusColors[item.status.toLowerCase()] || 'bg-gray-100 text-gray-800';
             
-            if (currentHistoryType === 'leave') {
-                // For leave requests, show: Title, From Date, To Date, Status
+            if (currentHistoryType === 'expenditure') {
+                row.innerHTML = `
+                    <td class="p-2">${item.expenditure_name || item.name || 'N/A'}</td>
+                    <td class="p-2">${item.amount ? '₹' + parseFloat(item.amount).toFixed(2) : 'N/A'}</td>
+                    <td class="p-2">${item.date ? new Date(item.date).toLocaleDateString() : 'N/A'}</td>
+                    <td class="p-2">
+                        <span class="px-2 py-1 rounded-full text-xs ${statusClass}">${item.status || 'N/A'}</span>
+                    </td>
+                `;
+            } else if (currentHistoryType === 'leave') {
+                // For leave requests, show: Leave Type, From Date, To Date, Status
                 const fromDate = item.from_date ? new Date(item.from_date) : null;
                 const toDate = item.to_date ? new Date(item.to_date) : null;
                 
-                // Format dates as DD/MM/YYYY
-                const formatDate = (date) => {
-                    if (!date) return 'N/A';
-                    const d = new Date(date);
-                    return d.toLocaleDateString('en-GB'); // This will format as DD/MM/YYYY
-                };
-                
-                // Enhance status display with better colors
-                const statusText = item.status || 'Pending';
-                let statusBadgeClass = 'bg-gray-100 text-gray-800';
-                
-                switch((statusText || '').toLowerCase()) {
-                    case 'approved':
-                        statusBadgeClass = 'bg-green-100 text-green-800';
-                        break;
-                    case 'pending':
-                        statusBadgeClass = 'bg-yellow-100 text-yellow-800';
-                        break;
-                    case 'rejected':
-                    case 'deleted':
-                        statusBadgeClass = 'bg-red-100 text-red-800';
-                        break;
-                    case 'hold':
-                        statusBadgeClass = 'bg-purple-100 text-purple-800';
-                        break;
-                }
-                
                 row.innerHTML = `
-                    <td class="p-3 border-b border-gray-200">
-                        <div class="font-medium text-gray-900">${item.title || 'N/A'}</div>
-                    </td>
-                    <td class="p-3 border-b border-gray-200 whitespace-nowrap">
-                        <div class="text-sm text-gray-900">${formatDate(item.from_date)}</div>
-                    </td>
-                    <td class="p-3 border-b border-gray-200 whitespace-nowrap">
-                        <div class="text-sm text-gray-900">${formatDate(item.to_date)}</div>
-                    </td>
-                    <td class="p-3 border-b border-gray-200 whitespace-nowrap">
-                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusBadgeClass}">
-                            ${statusText}
-                        </span>
+                    <td class="p-2">${item.title || 'N/A'}</td>
+                    <td class="p-2 whitespace-nowrap">${fromDate ? fromDate.toLocaleDateString('en-IN') : 'N/A'}</td>
+                    <td class="p-2 whitespace-nowrap">${toDate ? toDate.toLocaleDateString('en-IN') : 'N/A'}</td>
+                    <td class="p-2">
+                        <span class="px-2 py-1 rounded-full text-xs ${statusClass}">${item.status || 'N/A'}</span>
                     </td>
                 `;
             } else if (currentHistoryType === 'other') {
@@ -500,77 +392,100 @@
         });
     }
 
-    function showHistory(type, event) {
+    function showHistory(type) {
+        // Set the current history type
         currentHistoryType = type;
-        const historyBody = document.getElementById('history-body');
         
-        if (!requestData[type] || requestData[type].length === 0) {
-            historyBody.innerHTML = '<tr><td colspan="5" class="text-center">No records found</td></tr>';
-            return;
+        // Set the title based on the type
+        const titleMap = {
+            'expenditure': 'Expenditure Requests',
+            'leave': 'Leave Requests',
+            'other': 'Other Requests'
+        };
+        
+        document.getElementById('historyTitle').textContent = titleMap[type] || 'Request History';
+        
+        // Get the data from the template
+        let data = [];
+        try {
+            if (type === 'expenditure') {
+                data = JSON.parse('{{ expenditure_data|escapejs }}');
+                // Ensure we have the expenditure_name field
+                data = data.map(item => ({
+                    ...item,
+                    name: item.expenditure_name || item.name || 'N/A'
+                }));
+            } else if (type === 'leave') {
+                data = JSON.parse('{{ leave_data|escapejs }}');
+                // Ensure we have the required fields for leave requests
+                data = data.map(item => {
+                    // Convert date strings to Date objects for sorting
+                    const fromDate = item.from_date ? new Date(item.from_date) : null;
+                    const toDate = item.to_date ? new Date(item.to_date) : null;
+                    
+                    return {
+                        ...item,
+                        title: item.title || 'N/A',
+                        from_date: fromDate,
+                        to_date: toDate,
+                        status: item.status || 'Pending',
+                        message: item.message || ''
+                    };
+                });
+            } else if (type === 'other') {
+                data = JSON.parse('{{ other_data|escapejs }}');
+                // Ensure we have the required fields for other requests
+                data = data.map(item => {
+                    // Convert date string to Date object for sorting
+                    const requestDate = item.date ? new Date(item.date) : null;
+                    
+                    return {
+                        ...item,
+                        title: item.title || 'N/A',
+                        message: item.message || '',
+                        date: requestDate,
+                        status: item.status || 'Pending'
+                    };
+                });
+            }
+        } catch (e) {
+            console.error('Error parsing history data:', e);
+            data = [];
         }
         
-        let html = '';
+        // Store the data globally for filtering
+        currentHistoryData = data;
         
-        // Sort by date (newest first)
-        const sortedData = [...requestData[type]].sort((a, b) => {
-            const dateA = type === 'leave' ? a.from_date : a.date;
-            const dateB = type === 'leave' ? b.from_date : b.date;
-            return dateB - dateA;
-        });
+        // Set column headers based on type
+        const col1 = document.getElementById('col1');
+        const col2 = document.getElementById('col2');
+        const col3 = document.getElementById('col3');
+        const col4 = document.getElementById('col4');
         
-        sortedData.forEach(item => {
-            const statusClass = getStatusClass(item.status);
-            
-            if (type === 'leave') {
-                const fromDate = item.from_date ? new Date(item.from_date).toLocaleDateString() : 'N/A';
-                const toDate = item.to_date ? new Date(item.to_date).toLocaleDateString() : 'N/A';
-                
-                html += `
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap">${item.title || 'N/A'}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">${fromDate} to ${toDate}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">${item.leave_type || 'N/A'}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
-                                ${item.status || 'Pending'}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-normal">${item.message || '—'}</td>
-                    </tr>
-                `;
-            } else if (type === 'other') {
-                const date = item.date ? new Date(item.date).toLocaleDateString() : 'N/A';
-                
-                html += `
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap">${item.title || 'N/A'}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">${date}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">—</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
-                                ${item.status || 'Pending'}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-normal">${item.message || '—'}</td>
-                    </tr>
-                `;
-            }
-        });
-        
-        historyBody.innerHTML = html;
-        
-        // Update active button if called from a click event
-        if (event && event.target) {
-            document.querySelectorAll('#historyOptions button').forEach(btn => {
-                btn.classList.remove('bg-blue-100');
-            });
-            event.target.classList.add('bg-blue-100');
+        if (type === 'expenditure') {
+            col1.textContent = 'Expenditure';
+            col2.textContent = 'Amount';
+            col3.textContent = 'Date';
+            col4.textContent = 'Status';
+        } else if (type === 'leave') {
+            col1.textContent = 'Leave Type';
+            col2.textContent = 'From Date';
+            col3.textContent = 'To Date';
+            col4.textContent = 'Status';
+        } else if (type === 'other') {
+            col1.textContent = 'Request Title';
+            col2.textContent = 'Message';
+            col3.textContent = 'Request Date';
+            col4.textContent = 'Status';
         }
         
         // Show the history section and hide the forms
         document.getElementById('historySection').classList.remove('hidden');
         document.getElementById('formsContainer').classList.add('hidden');
         document.getElementById('historyOptions').classList.add('hidden');
+        
+        // Display the filtered data
+        displayFilteredHistory();
     }
 
     // Add a back button to return to forms
@@ -835,9 +750,4 @@
     }
 </style>
 {% endblock %}
-
-{% block extra_js %}
-{{ expenditure_data|json_script:"expenditure-data" }}
-{{ leave_data|json_script:"leave-data" }}
-{{ other_data|json_script:"other-data" }}
-{% endblock %}
+    

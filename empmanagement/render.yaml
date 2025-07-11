@@ -1,29 +1,87 @@
+# services:
+#   - type: web
+#     name: employee-management
+#     env: python
+#     buildCommand: pip install -r requirements.txt
+#     startCommand: bash -c "python manage.py migrate && gunicorn empmanagement.wsgi"
+#     envVars:
+#       - key: PYTHON_VERSION
+#         value: 3.10.0
+#       - key: DEBUG
+#         value: "False"
+#       - key: DISABLE_COLLECTSTATIC
+#         value: "0"
+#       - key: ALLOWED_HOSTS
+#         value: "*"
+#       - key: SECRET_KEY
+#         generateValue: true
+#       - key: WEB_CONCURRENCY
+#         value: "4"
+#       - key: DATABASE_URL
+#         fromDatabase:
+#           name: employee-management-db  # <-- use the name of your actual Render database
+#           property: connectionString
+#     plan: free
+
+
+# services:
+#   - type: web
+#     name: employee-management
+#     env: python
+#     buildCommand: pip install -r requirements.txt
+#     startCommand: gunicorn empmanagement.wsgi
+#     postDeployCommand: python manage.py migrate
+#     envVars:
+#       - key: PYTHON_VERSION
+#         value: 3.10.0
+#       - key: DEBUG
+#         value: "False"
+#       - key: DISABLE_COLLECTSTATIC
+#         value: "0"
+#       - key: ALLOWED_HOSTS
+#         value: "*"
+#       - key: SECRET_KEY
+#         generateValue: true
+#       - key: WEB_CONCURRENCY
+#         value: "4"
+#       - key: DATABASE_URL
+#         fromDatabase:
+#           name: employee-management-db
+#           property: connectionString
+#     plan: free
+
 services:
   - type: web
     name: employee-management
     env: python
-    buildCommand: |
-      pip install --upgrade pip &&
-      pip install -r requirements.txt &&
-      python manage.py collectstatic --noinput
+    buildCommand: pip install -r requirements.txt
     startCommand: |
-      python manage.py migrate --noinput &&
-      gunicorn empmanagement.wsgi:application --config gunicorn_prod.py
+      bash -c "
+        echo 'Waiting for database to be ready...';
+        until python manage.py migrate --noinput; do
+          echo 'Waiting for DB...';
+          sleep 5;
+        done;
+        echo 'Collecting static files...';
+        python manage.py collectstatic --noinput;
+        echo 'Starting server...';
+        gunicorn empmanagement.wsgi:application --bind 0.0.0.0:$PORT
+      "
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.0
       - key: DEBUG
         value: "False"
       - key: DISABLE_COLLECTSTATIC
-        value: "1"
+        value: "0"
       - key: ALLOWED_HOSTS
         value: "*"
       - key: SECRET_KEY
         generateValue: true
+      - key: WEB_CONCURRENCY
+        value: "4"
       - key: DATABASE_URL
         fromDatabase:
           name: employee-management-db
           property: connectionString
-      - key: PYTHONUNBUFFERED
-        value: "1"
     plan: free
