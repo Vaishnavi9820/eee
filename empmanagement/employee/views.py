@@ -888,13 +888,15 @@ def mark_task_completed(request, task_id):
 from django.db.models import Count
 from django.db.models import F
 from django.utils import timezone
-from calendar import monthrange, SUNDAY
+from calendar import monthrange, SUNDAY, SATURDAY
 from datetime import datetime, timedelta
 from .models import Attendance, Employee
 from datetime import datetime, date
 from django.contrib.auth.decorators import login_required
 
-SUNDAY = 6  # Sunday is the 6th day of the week (0=Monday, 6=Sunday)
+# Constants for days of the week (0=Monday, 6=Sunday)
+SATURDAY = 5
+SUNDAY = 6
 
 def get_weekend_days(year, month):
     """Returns a list of all Saturdays and Sundays in the given month."""
@@ -919,18 +921,19 @@ def get_working_days_for_month(request):
     # Get total days in the selected month (Fixing issue)
     total_days_in_month = monthrange(year, month)[1]  # Always considers full month
 
-    # Get all past weekend days (Saturdays and Sundays)
+    # Get all weekend days (Saturdays and Sundays) for the month
     weekend_days = get_weekend_days(year, month)
-
-    # Get distinct working days (days when login_time is recorded)
-    distinct_working_days = set(Attendance.objects.filter(
+    
+    # Get distinct weekdays (Monday-Friday) when user logged in
+    logged_weekdays = set(Attendance.objects.filter(
         eId=employee_id,
         login_time__month=month,
-        login_time__year=year
+        login_time__year=year,
+        login_time__week_day__in=[2, 3, 4, 5, 6]  # Monday=2, Friday=6 in Django's week_day (1=Sunday)
     ).values_list('login_time__date', flat=True).distinct())
-
-    # Total working days = Login Days + All weekend days (Saturdays and Sundays)
-    total_working_days = len(distinct_working_days | set(weekend_days))
+    
+    # Combine logged weekdays with all weekend days
+    total_working_days = len(logged_weekdays) + len(weekend_days)
 
     # Prepare month name
     month_name = datetime(year, month, 1).strftime('%B')
