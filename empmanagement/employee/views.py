@@ -896,17 +896,17 @@ from django.contrib.auth.decorators import login_required
 
 SUNDAY = 6  # Sunday is the 6th day of the week (0=Monday, 6=Sunday)
 
-def get_past_sundays(year, month):
-    """Returns a list of past Sundays in the given month (up to today's date)."""
+def get_weekend_days(year, month):
+    """Returns a list of past Saturdays and Sundays in the given month (up to today's date)."""
     today = date.today()
     _, days_in_month = monthrange(year, month)
     
-    sundays = [
+    weekend_days = [
         date(year, month, day)
         for day in range(1, days_in_month + 1)
-        if date(year, month, day).weekday() == SUNDAY and date(year, month, day) <= today
+        if date(year, month, day).weekday() in [SATURDAY, SUNDAY] and date(year, month, day) <= today
     ]
-    return sundays
+    return weekend_days
 
 @login_required
 def get_working_days_for_month(request):
@@ -920,8 +920,8 @@ def get_working_days_for_month(request):
     # Get total days in the selected month (Fixing issue)
     total_days_in_month = monthrange(year, month)[1]  # Always considers full month
 
-    # Get only past Sundays
-    past_sundays = get_past_sundays(year, month)
+    # Get all past weekend days (Saturdays and Sundays)
+    weekend_days = get_weekend_days(year, month)
 
     # Get distinct working days (days when login_time is recorded)
     distinct_working_days = set(Attendance.objects.filter(
@@ -930,8 +930,8 @@ def get_working_days_for_month(request):
         login_time__year=year
     ).values_list('login_time__date', flat=True).distinct())
 
-    # Total working days = Login Days + Past Sundays
-    total_working_days = len(distinct_working_days | set(past_sundays))
+    # Total working days = Login Days + All weekend days (Saturdays and Sundays)
+    total_working_days = len(distinct_working_days | set(weekend_days))
 
     # Prepare month name
     month_name = datetime(year, month, 1).strftime('%B')
