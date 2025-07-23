@@ -897,14 +897,13 @@ from django.contrib.auth.decorators import login_required
 SUNDAY = 6  # Sunday is the 6th day of the week (0=Monday, 6=Sunday)
 
 def get_weekend_days(year, month):
-    """Returns a list of past Saturdays and Sundays in the given month (up to today's date)."""
-    today = date.today()
+    """Returns a list of all Saturdays and Sundays in the given month."""
     _, days_in_month = monthrange(year, month)
     
     weekend_days = [
         date(year, month, day)
         for day in range(1, days_in_month + 1)
-        if date(year, month, day).weekday() in [SATURDAY, SUNDAY] and date(year, month, day) <= today
+        if date(year, month, day).weekday() in [SATURDAY, SUNDAY]
     ]
     return weekend_days
 
